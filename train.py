@@ -26,7 +26,7 @@ from datetime import datetime
 
 # 导入自定义模块
 from data.data_interface import BreastCancerDataset, DInterface
-from model.model_interface import MInterface
+from model.model_interface import MInterface, get_available_wavelets
 
 # 忽略警告
 warnings.filterwarnings('ignore')
@@ -52,6 +52,13 @@ def parse_args():
     parser.add_argument('--dropout_rate', type=float, default=0.5,
                         help='Dropout比率')
     
+    # 小波变换参数
+    parser.add_argument('--use_wavelet', action='store_true',
+                        help='是否使用小波变换')
+    parser.add_argument('--wavelet_type', type=str, default='db1',
+                        choices=['haar', 'db1', 'db2', 'db4', 'sym2', 'sym4', 'coif1'],
+                        help='小波变换类型')
+    
     # 训练参数
     parser.add_argument('--epochs', type=int, default=100,
                         help='训练轮数')
@@ -65,6 +72,13 @@ def parse_args():
                         help='随机种子')
     parser.add_argument('--save_dir', type=str, default='checkpoints',
                         help='模型保存目录')
+    
+    # 显示小波类型选项
+    wavelets = get_available_wavelets()
+    if len(wavelets) > 0:
+        print(f"可用的小波类型: {', '.join(wavelets[:10])}")
+        if len(wavelets) > 10:
+            print(f"(显示前10种，共{len(wavelets)}种)")
     
     return parser.parse_args()
 
@@ -252,12 +266,24 @@ def main():
     for class_name, count in dataset_info['class_distribution']['train'].items():
         print(f"  * {class_name}: {count}")
     
-    # 创建模型
+    # 创建模型接口
     model_interface = MInterface(
         num_classes=args.num_classes,
+        dropout_rate=args.dropout_rate,
+        use_wavelet=args.use_wavelet,
+        wavelet_type=args.wavelet_type,
         device=device
     )
-    model = model_interface[0]
+    
+    # 使用MInterface的model属性获取模型（修复原代码中的索引访问）
+    model = model_interface.model
+    
+    # 显示模型信息
+    if args.use_wavelet:
+        print(f"\n使用小波变换CNN，小波类型: {args.wavelet_type}")
+    else:
+        print("\n使用标准CNN模型")
+    print(f"模型参数数量: {model_interface.param_count:,}")
     
     # 定义损失函数和优化器
     criterion = nn.CrossEntropyLoss()
@@ -281,7 +307,7 @@ def main():
         optimizer=optimizer,
         scheduler=scheduler,
         device=device,
-        num_epochs=10,
+        num_epochs=args.epochs,
         save_dir=args.save_dir
     )
     
@@ -318,7 +344,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
