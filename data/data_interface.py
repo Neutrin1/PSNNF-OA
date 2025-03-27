@@ -44,7 +44,10 @@ class BreastCancerDataset(Dataset):
         self.transform = transform
         self.samples = []
         self.classes = ["cat", "dog"] 
+        self.preloaded_images = {}
+
         
+
         # 加载数据为(samples, label)的形式
         for class_idx, class_name in enumerate(self.classes):
             class_dir = os.path.join(root_dir, subset, class_name)  
@@ -53,6 +56,8 @@ class BreastCancerDataset(Dataset):
                     if img_name.endswith(('.jpg', '.png', '.jpeg')):
                         img_path = os.path.join(class_dir, img_name)
                         self.samples.append((img_path, class_idx))
+
+
 
     def __len__(self):
         """返回数据集大小"""
@@ -193,7 +198,8 @@ class DInterface:
             shuffle=True,
             # num_workers=self.num_workers,
             # pin_memory=self.pin_memory,
-            # drop_last=True
+            # drop_last=True,
+            # persistent_workers=True  # 添加此参数
         )
     
     def val_dataloader(self):
@@ -203,7 +209,8 @@ class DInterface:
             batch_size=self.batch_size,
             shuffle=True,
             # num_workers=self.num_workers,
-            # pin_memory=self.pin_memory
+            # pin_memory=self.pin_memory,
+            # persistent_workers=True  # 添加此参数
         )
     
     def test_dataloader(self):

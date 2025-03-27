@@ -60,12 +60,12 @@ model_interface = MInterface(
     in_channels=3,           # RGB图像为3通道
     num_classes=2,           # 二分类问题
     dropout_rate=0.5,
-    use_wavelet=False,       # 根据您训练时的配置设置
+    use_wavelet=True,       # 根据您训练时的配置设置
     device=device            # 使用当前设备
 )
 
 # 加载训练好的权重
-model_path = os.path.join("checkpoints", "final_model.pth")
+model_path = os.path.join("checkpoints", "cnnwt_model.pth")
 model_interface.load_model(model_path)
 
 # 获取模型对象

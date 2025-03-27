@@ -23,6 +23,8 @@ import warnings
 from tqdm import tqdm
 import argparse
 from datetime import datetime
+from torch.amp import autocast, GradScaler
+
 
 # 导入自定义模块
 from data.data_interface import BreastCancerDataset, DInterface
@@ -42,7 +44,7 @@ def parse_args():
                         help='数据集根目录')
     parser.add_argument('--batch_size', type=int, default=32,
                         help='训练批量大小')
-    parser.add_argument('--num_workers', type=int, default=4,
+    parser.add_argument('--num_workers', type=int, default=16,
                         help='数据加载线程数')
     
     # 模型参数
@@ -95,6 +97,9 @@ def set_seed(seed):
     torch.backends.cudnn.benchmark = False
 
 def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, device, num_epochs=25, save_dir='checkpoints'):
+
+   
+
     """
     训练模型函数
     
@@ -113,6 +118,9 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         model: 训练后的模型
         history: 训练历史记录
     """
+
+    scaler = torch.amp.GradScaler()
+
     # 确保保存目录存在
     os.makedirs(save_dir, exist_ok=True)
     
@@ -152,16 +160,35 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
                     optimizer.zero_grad()
                     
                     # 前向传播
-                    with torch.set_grad_enabled(phase == 'train'):
-                        outputs = model(inputs)
-                        _, preds = torch.max(outputs, 1)
-                        loss = criterion(outputs, labels)
+                    # with torch.set_grad_enabled(phase == 'train'):
+                    #     outputs = model(inputs)
+                    #     _, preds = torch.max(outputs, 1)
+                    #     loss = criterion(outputs, labels)
                         
-                        # 反向传播与优化（仅在训练阶段）
-                        if phase == 'train':
-                            loss.backward()
-                            optimizer.step()
+                    #     # 反向传播与优化（仅在训练阶段）
+                    #     if phase == 'train':
+                    #         loss.backward()
+                    #         optimizer.step()
                     
+                    if phase == 'train':
+                        # 训练阶段使用混合精度
+                        with autocast(device_type='cuda'):
+                            outputs = model(inputs)
+                            loss = criterion(outputs, labels)
+                        
+                        # 使用scaler进行反向传播和优化
+                        scaler.scale(loss).backward()
+                        scaler.step(optimizer)
+                        scaler.update()
+                    else:
+                        # 验证阶段使用全精度
+                        outputs = model(inputs)
+                        loss = criterion(outputs, labels)
+                    
+                    # 获取预测结果
+                    _, preds = torch.max(outputs, 1)
+
+
                     # 统计损失和准确率
                     batch_loss = loss.item() * inputs.size(0)
                     batch_corrects = torch.sum(preds == labels.data)
@@ -245,7 +272,11 @@ def main():
     
     # 设置随机种子
     set_seed(args.seed)
-    
+    # 在 main 函数中，训练前添加提示
+    if torch.cuda.is_available():
+        print("启用混合精度训练以提升性能")
+    else:
+        print("当前设备不支持CUDA，无法启用混合精度训练")
     # 检测设备
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"使用设备: {device}")
