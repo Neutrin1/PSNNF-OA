@@ -228,12 +228,16 @@ class WaveletCNN(nn.Module):
         features = torch.flatten(features, 1)
         features = self.dropout(features)
         output = self.classifier(features)
+        
+        if not self.training:
+            output = F.softmax(output, dim=1)
+
         return output
 
 
 class Model(nn.Module):
     """基础深度CNN分类器"""
-    def __init__(self, in_channels: int = 3, num_classes: int = 10,
+    def __init__(self, in_channels: int = 3, num_classes: int = 2,
                  layer_config: List[Tuple[int, int, int]] = None,
                  use_adaptive_pool: bool = True,
                  dropout_rate: float = 0.5):
@@ -298,6 +302,11 @@ class Model(nn.Module):
         x = torch.flatten(x, 1)
         x = self.dropout(x)
         x = self.classifier(x)
+
+        # 仅在评估模式下应用 softmax
+        if not self.training:
+            x = F.softmax(x, dim=1)
+
         return x
 
 
@@ -388,7 +397,7 @@ class MInterface:
 # 创建模型的辅助函数
 def create_cnn_model(
     in_channels: int = 3,
-    num_classes: int = 10,
+    num_classes: int = 2,
     layer_config: Optional[List[Tuple[int, int, int]]] = None,
     use_adaptive_pool: bool = True,
     dropout_rate: float = 0.5,
@@ -517,3 +526,28 @@ if __name__ == "__main__":
             use_wavelet=True
         )
         print(f"小波CNN参数量: {params_w:,}")
+
+    def print_network_structure(model):
+        """打印网络结构及参数数量"""
+        print("网络结构:")
+        total_params = 0
+        for name, parameter in model.named_parameters():
+            if not parameter.requires_grad:
+                continue
+            params = parameter.numel()
+            total_params += params
+            print(f"\t{name}: {parameter.shape} → {params:,} 参数")
+        
+        print(f"可训练参数总量: {total_params:,}")
+        print("\n完整网络结构:")
+        print(model)
+
+    if __name__ == "__main__":
+        # 添加网络结构打印测试
+        print("\n=== 打印标准CNN网络结构 ===")
+        model, _ = create_cnn_model(num_classes=2)
+        print_network_structure(model)
+        
+        print("\n=== 打印小波CNN网络结构 ===")
+        wavelet_model, _ = create_cnn_model(num_classes=2, use_wavelet=True)
+        print_network_structure(wavelet_model)

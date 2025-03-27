@@ -20,6 +20,11 @@ from torch.utils.data import DataLoader, Dataset
 from torch.nn import functional as F
 from torchvision import transforms
 from sklearn.model_selection import train_test_split
+import matplotlib
+import matplotlib.pyplot as plt
+import warnings 
+warnings.filterwarnings('ignore')
+
 
 
 class BreastCancerDataset(Dataset):
@@ -38,7 +43,7 @@ class BreastCancerDataset(Dataset):
         self.subset = subset
         self.transform = transform
         self.samples = []
-        self.classes = ['0', '1']  # 0: benign, 1: malignant
+        self.classes = ["cat", "dog"] 
         
         # 加载数据为(samples, label)的形式
         for class_idx, class_name in enumerate(self.classes):
@@ -48,7 +53,7 @@ class BreastCancerDataset(Dataset):
                     if img_name.endswith(('.jpg', '.png', '.jpeg')):
                         img_path = os.path.join(class_dir, img_name)
                         self.samples.append((img_path, class_idx))
-        
+
     def __len__(self):
         """返回数据集大小"""
         return len(self.samples)
@@ -73,7 +78,7 @@ class BreastCancerDataset(Dataset):
     @staticmethod
     def get_class_names():
         """返回类别名称"""
-        return ["良性", "恶性"]
+        return ["cat", "dog"]
     
     def count_class_distribution(self):
         """统计数据集中各类别的样本数量"""
@@ -175,7 +180,7 @@ class DInterface:
             self.root_path, 'train', transform=self.train_transform)
         
         self.val_dataset = BreastCancerDataset(
-            self.root_path, 'test', transform=self.val_transform)
+            self.root_path, 'val', transform=self.val_transform)
         
         self.test_dataset = BreastCancerDataset(
             self.root_path, 'test', transform=self.val_transform)
@@ -237,7 +242,7 @@ class DInterface:
 # 简单使用示例
 if __name__ == "__main__":
     # 设置数据集路径
-    root_path = 'E:/Dataset/breastcancer2'
+    root_path = 'E:/Dataset/dogs-vs-cats-redux-kernels-edition'
     # 创建数据接口实例
     data_interface = DInterface(
         root_path=root_path,
@@ -260,3 +265,60 @@ if __name__ == "__main__":
     train_loader = data_interface.train_dataloader()
     images, labels = next(iter(train_loader))
     print(f"\n批次数据形状: {images.shape}, 标签形状: {labels.shape}")
+    # 可视化一些样本
+
+    
+    # 设置中文字体支持
+    try:
+        # 适用于Windows系统
+        plt.rcParams['font.sans-serif'] = ['SimHei']  # 用来正常显示中文标签
+        plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示负号
+    except:
+        # 如果不成功，尝试其他方法
+        matplotlib.rcParams['font.family'] = ['Adobe Heiti Std', 'Arial Unicode MS', 'Microsoft YaHei', 'Hiragino Sans GB']
+    
+    def imshow(img):
+        """显示图像"""
+        # 反归一化
+        img = img.numpy().transpose((1, 2, 0))
+        mean = np.array(data_interface.config["mean"])
+        std = np.array(data_interface.config["std"])
+        img = std * img + mean
+        img = np.clip(img, 0, 1)
+        plt.imshow(img)
+    
+    # 显示部分训练样本，确保显示两种类别各至少一张
+    plt.figure(figsize=(15, 8))
+    
+    # 找出每个类别的样本索引
+    class0_indices = [i for i, (_, label) in enumerate(data_interface.train_dataset.samples) if label == 0]
+    class1_indices = [i for i, (_, label) in enumerate(data_interface.train_dataset.samples) if label == 1]
+    
+    # 确保有足够的样本
+    if class0_indices and class1_indices:
+        # 随机选择两张类别0图片和三张类别1图片（或反之）
+        selected_indices = (
+            np.random.choice(class0_indices, min(2, len(class0_indices)), replace=False).tolist() + 
+            np.random.choice(class1_indices, min(3, len(class1_indices)), replace=False).tolist()
+        )
+        # 如果样本不足5张，补充随机样本
+        if len(selected_indices) < 5:
+            all_indices = list(range(len(data_interface.train_dataset)))
+            remaining = [i for i in all_indices if i not in selected_indices]
+            selected_indices.extend(np.random.choice(remaining, 5 - len(selected_indices), replace=False))
+    else:
+        # 如果某个类别没有样本，就随机选择
+        selected_indices = np.random.choice(len(data_interface.train_dataset), 5, replace=False)
+    
+    # 打乱顺序
+    np.random.shuffle(selected_indices)
+    
+    # 显示选择的样本
+    for i, idx in enumerate(selected_indices[:5]):
+        img, label = data_interface.train_dataset[idx]
+        plt.subplot(1, 5, i+1)
+        imshow(img)
+        plt.title(f"类别: {BreastCancerDataset.get_class_names()[label]}", fontsize=12)
+    
+    plt.tight_layout()
+    plt.show()

@@ -27,6 +27,8 @@ from datetime import datetime
 # 导入自定义模块
 from data.data_interface import BreastCancerDataset, DInterface
 from model.model_interface import MInterface, get_available_wavelets
+plt.rcParams['font.sans-serif'] = ['SimHei']  # 用来正常显示中文标签
+plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示负号
 
 # 忽略警告
 warnings.filterwarnings('ignore')
@@ -36,7 +38,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='乳腺癌分类训练脚本')
     
     # 数据参数
-    parser.add_argument('--data_path', type=str, default='E:/Dataset/breastcancer2',
+    parser.add_argument('--data_path', type=str, default='E:/Dataset/animals',
                         help='数据集根目录')
     parser.add_argument('--batch_size', type=int, default=32,
                         help='训练批量大小')
@@ -230,7 +232,11 @@ def visualize_training_history(history):
     plt.legend()
     
     plt.tight_layout()
-    plt.savefig('training_history.png')
+    # 使用时间戳创建唯一的文件名
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    save_path = f'training_history_{timestamp}.png'
+    plt.savefig(save_path)
+    print(f"训练历史图表已保存至: {save_path}")
     plt.show()
 
 def main():
@@ -344,3 +350,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
