@@ -24,7 +24,7 @@ from typing import Optional, Tuple, List
 import numpy as np
 import os
 import pywt
-from CNN_model import Model, WaveletCNN
+from Model import *
 """
     创建模型接口
 """
@@ -90,11 +90,9 @@ class MInterface:
             )
             print("使用标准CNN模型")
         else:                               #Unet网络
-            model = Model(
+            model = UNet(
                 in_channels=self.in_channels,
                 num_classes=self.num_classes,
-                layer_config=self.layer_config,
-                dropout_rate=self.dropout_rate
             )
         
         # 移动模型到指定设备
@@ -124,7 +122,7 @@ class MInterface:
 
 # 独立使用的
 # 创建模型的辅助函数
-def create_cnn_model(
+def create_model(
     in_channels: int = 3,
     num_classes: int = 2,
     layer_config: Optional[List[Tuple[int, int, int]]] = None,
@@ -158,7 +156,7 @@ def create_cnn_model(
             dropout_rate=dropout_rate,
             wavelet_type=wavelet_type
         )
-    else:
+    elif model_type == 'cnn':
         model = Model(
             in_channels=in_channels,
             num_classes=num_classes,
@@ -166,17 +164,17 @@ def create_cnn_model(
             use_adaptive_pool=use_adaptive_pool,
             dropout_rate=dropout_rate
         )
-    
+    else:
+        model = UNet(
+            in_channels=in_channels,
+            num_classes=num_classes,
+        )
+
     if device is not None:
         model = model.to(device)
     
     total_params = sum(p.numel() for p in model.parameters())
     return model, total_params
-
-
-
-
-
 
 # 获取默认和推荐的网络配置
 def get_recommended_configs():
@@ -203,84 +201,53 @@ def get_recommended_configs():
         ]
     }
     return configs
-
-
 # 获取可用的小波类型
 def get_available_wavelets():
     """返回可用的小波类型列表"""
     return pywt.wavelist(family=None)
 
-
 if __name__ == "__main__":
-    # 模块测试代码
-    print("测试默认配置CNN:")
-    model, param_count = create_cnn_model(num_classes=2)
-    print(f"模型参数量: {param_count:,}")
-    
-    # 测试小波CNN
-    print("\n测试小波变换CNN:")
-    model, param_count = create_cnn_model(
-        num_classes=2, 
-        model_type = 'waveletcnn',
-        wavelet_type='db4'
-    )
-    print(f"小波CNN模型参数量: {param_count:,}")
-    
-    # 测试模型接口
-    print("\n测试模型接口:")
-    model_interface = MInterface(num_classes=2)
-    
-    # 测试小波模型接口
-    print("\n测试小波变换模型接口:")
-    wavelet_model_interface = MInterface(
-        num_classes=2, 
-        model_type='waveletcnn',
-        wavelet_type='haar'
-    )
-    
-    # 查看可用小波类型
-    print("\n可用的小波类型:")
-    wavelets = get_available_wavelets()
-    print(f"共 {len(wavelets)} 种小波类型:")
-    # 每行打印10个小波类型
-    for i in range(0, len(wavelets), 10):
-        print(", ".join(wavelets[i:i+10]))
-    
-    # 测试不同配置
-    configs = get_recommended_configs()
-    for name, config in configs.items():
-        print(f"\n测试{name}配置:")
-        model, params = create_cnn_model(layer_config=config, num_classes=2)
-        print(f"标准CNN参数量: {params:,}")
+    # 创建日志文件
+    log_file = "model_test_results.txt"
+    with open(log_file, "w", encoding="utf-8") as f:
+        # 测试各种模型
+        models_to_test = {
+            "标准CNN": {"model_type": "cnn"},
+            "小波CNN": {"model_type": "waveletcnn", "wavelet_type": "db4"},
+            "UNet": {"model_type": "unet"}
+        }
         
-        model_w, params_w = create_cnn_model(
-            layer_config=config, 
-            num_classes=2, 
-            model_type='waveletcnn'
-        )
-        print(f"小波CNN参数量: {params_w:,}")
-
-    def print_network_structure(model):
-        """打印网络结构及参数数量"""
-        print("网络结构:")
-        total_params = 0
-        for name, parameter in model.named_parameters():
-            if not parameter.requires_grad:
-                continue
-            params = parameter.numel()
-            total_params += params
-            print(f"\t{name}: {parameter.shape} → {params:,} 参数")
+        # 测试模型创建函数
+        f.write("=== 测试模型创建函数 ===\n")
+        for name, params in models_to_test.items():
+            model, param_count = create_model(num_classes=2, **params)
+            f.write(f"{name}模型参数量: {param_count:,}\n")
         
-        print(f"可训练参数总量: {total_params:,}")
-        print("\n完整网络结构:")
-        print(model)
-
-    if __name__ == "__main__":
-        # 添加网络结构打印测试
-        print("\n=== 打印标准CNN网络结构 ===")
-        model, _ = create_cnn_model(num_classes=2,model_type='cnn')
-        print_network_structure(model)
+        # 测试模型接口
+        f.write("\n=== 测试模型接口 ===\n")
+        for name, params in models_to_test.items():
+            interface = MInterface(num_classes=2, **params)
+            f.write(f"{name}接口参数量: {interface.param_count:,}\n")
         
-        print("\n=== 打印小波CNN网络结构 ===")
-        wavelet_model, _ = create_cnn_model(num_classes=2, model_type='waveletcnn') 
-        print_network_structure(wavelet_model)
+        # 简洁打印可用的小波类型
+        wavelets = get_available_wavelets()
+        f.write(f"\n可用的小波类型: {len(wavelets)}种\n")
+        
+        # 测试推荐配置
+        f.write("\n=== 测试推荐配置 ===\n")
+        for name, config in get_recommended_configs().items():
+            for model_type in ["cnn", "waveletcnn"]:
+                model, params = create_model(layer_config=config, num_classes=2, model_type=model_type)
+                f.write(f"{name}配置 - {model_type}: {params:,}参数\n")
+                
+        # 打印UNet详细结构
+        def print_model_structure(model):
+            total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+            f.write(f"可训练参数总量: {total_params:,}\n")
+            
+        f.write("\n=== 测试模型结构详情 ===\n")
+        unet_model, _ = create_model(num_classes=2, model_type="unet")
+        print_model_structure(unet_model)
+        f.write(str(unet_model))
+    
+    print(f"模型测试结果已保存到 {log_file}")

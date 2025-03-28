@@ -6,40 +6,16 @@
 @Author  :   Neutrin 
 '''
 
+
+# here put the import lib
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from typing import Optional, Tuple, List
 import numpy as np
-import os
-import pywt
 
-# here put the import lib
-
-#定义基础模块
-class BasicBlock(nn.Module):
-    """基础卷积块，包含卷积、批归一化和激活函数"""
-    def __init__(self, in_channels: int, out_channels: int, 
-                 kernel_size: int = 3, stride: int = 1, 
-                 padding: int = 1, use_relu: bool = True):
-        super().__init__()
-        self.conv = nn.Conv2d(                  
-            in_channels, out_channels,
-            kernel_size=kernel_size,
-            stride=stride,
-            padding=padding,
-            bias=False
-        )                                    # 卷积
-        self.pool = nn.MaxPool2d(2, 2) if stride == 2 else nn.Identity()  # 池化
-        self.bn = nn.BatchNorm2d(out_channels)              # 批归一化
-        self.relu = nn.ReLU(inplace=True) if use_relu else nn.Identity()  # 激活函数
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.conv(x)
-        x = self.bn(x)
-        x = self.relu(x)
-        return x
-
+from model_parts import BasicBlock, WaveletTransform
+from unet_parts import *
 
 class Model(nn.Module):
     """基础深度CNN分类器"""
@@ -114,64 +90,6 @@ class Model(nn.Module):
             x = F.softmax(x, dim=1)
 
         return x
-
-
-
-
-class WaveletTransform(nn.Module):
-    """小波变换层，用于多维特征提取"""
-    def __init__(self, wavelet='db1', mode='symmetric', level=1):
-        """
-        参数:
-            wavelet: 小波函数类型
-            mode: 边界填充模式
-            level: 分解级别
-        """
-        super().__init__()
-        self.wavelet = wavelet
-        self.mode = mode
-        self.level = level
-    
-    def forward(self, x):
-        """
-        对输入图像执行小波变换
-        参数:
-            x: 输入张量 [batch_size, channels, height, width]
-        返回:
-            变换后的特征 [batch_size, channels*4, height//2, width//2]
-        """
-        # 移动到CPU进行小波变换
-        device = x.device
-        x_np = x.detach().cpu().numpy()
-        batch_size, channels, height, width = x_np.shape
-        
-        # 初始化输出数组
-        output = np.zeros((batch_size, channels*4, height//2, width//2), dtype=np.float32)
-        
-        # 对每个样本的每个通道进行小波变换
-        for batch_idx in range(batch_size):
-            for channel_idx in range(channels):
-                # 提取单个通道图像
-                img = x_np[batch_idx, channel_idx]
-                
-                # 进行小波变换
-                coeffs = pywt.dwt2(img, self.wavelet, mode=self.mode)
-                LL, (LH, HL, HH) = coeffs
-                
-                # 存储结果
-                output_channel_offset = channel_idx * 4
-                output[batch_idx, output_channel_offset] = LL
-                output[batch_idx, output_channel_offset + 1] = LH
-                output[batch_idx, output_channel_offset + 2] = HL
-                output[batch_idx, output_channel_offset + 3] = HH
-        
-        # 转换回PyTorch张量并返回
-        output_tensor = torch.from_numpy(output).to(device)
-        return output_tensor
-
-
-
-
 
 
 class WaveletCNN(nn.Module):
@@ -302,5 +220,48 @@ class WaveletCNN(nn.Module):
 
         return output
 
+# 创建Unet网络
+class UNet(nn.Module):
 
+    def __init__(self, in_channels, num_classes, bilinear=False):
+        super(UNet, self).__init__()
+        self.n_channels = in_channels
+        self.n_classes = num_classes
+        self.bilinear = bilinear
 
+        self.inc = (DoubleConv(in_channels, 64))  # 这是 U-Net 的输入层
+        self.down1 = (Down(64, 128))                # 下采样层
+        self.down2 = (Down(128, 256))               # 下采样层
+        self.down3 = (Down(256, 512))               # 下采样层
+        factor = 2 if bilinear else 1               # 双线性插值的放大倍数
+        self.down4 = (Down(512, 1024 // factor))           # 下采样层
+        self.up1 = (Up(1024, 512 // factor, bilinear))   # 上采样层
+        self.up2 = (Up(512, 256 // factor, bilinear))   # 上采样层
+        self.up3 = (Up(256, 128 // factor, bilinear))   # 上采样层
+        self.up4 = (Up(128, 64, bilinear))          
+        self.outc = (OutConv(64, num_classes))
+
+    def forward(self, x):
+        x1 = self.inc(x)
+        x2 = self.down1(x1)
+        x3 = self.down2(x2)
+        x4 = self.down3(x3)
+        x5 = self.down4(x4)
+        x = self.up1(x5, x4)
+        x = self.up2(x, x3)
+        x = self.up3(x, x2)
+        x = self.up4(x, x1)
+        logits = self.outc(x)
+        return logits
+
+    def use_checkpointing(self):
+        self.inc = torch.utils.checkpoint(self.inc)
+        self.down1 = torch.utils.checkpoint(self.down1)
+        self.down2 = torch.utils.checkpoint(self.down2)
+        self.down3 = torch.utils.checkpoint(self.down3)
+        self.down4 = torch.utils.checkpoint(self.down4)
+        self.up1 = torch.utils.checkpoint(self.up1)
+        self.up2 = torch.utils.checkpoint(self.up2)
+        self.up3 = torch.utils.checkpoint(self.up3)
+        self.up4 = torch.utils.checkpoint(self.up4)
+        self.outc = torch.utils.checkpoint(self.outc)
