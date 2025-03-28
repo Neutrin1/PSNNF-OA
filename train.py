@@ -40,7 +40,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='乳腺癌分类训练脚本')
     
     # 数据参数
-    parser.add_argument('--data_path', type=str, default='E:/Dataset/animals',
+    parser.add_argument('--data_path', type=str, default='E:/Dataset/dogs-vs-cats-redux-kernels-edition',
                         help='数据集根目录')
     parser.add_argument('--batch_size', type=int, default=32,
                         help='训练批量大小')
@@ -49,7 +49,7 @@ def parse_args():
     
     # 模型参数
     parser.add_argument('--model_type', type=str, default='cnn',
-                        choices=['cnn', 'resnet50', 'efficientnet_b0', 'mobilenetv2_100'],
+                        choices=['cnn', 'waveletcnn','resnet50', 'efficientnet_b0', 'mobilenetv2_100'],
                         help='模型类型')
     parser.add_argument('--num_classes', type=int, default=2,
                         help='分类类别数')
@@ -57,8 +57,9 @@ def parse_args():
                         help='Dropout比率')
     
     # 小波变换参数
-    parser.add_argument('--use_wavelet', action='store_true',
-                        help='是否使用小波变换')
+    # parser.add_argument('--use_wavelet', action='store_true',
+    #                     help='是否使用小波变换')
+
     parser.add_argument('--wavelet_type', type=str, default='db1',
                         choices=['haar', 'db1', 'db2', 'db4', 'sym2', 'sym4', 'coif1'],
                         help='小波变换类型')
@@ -77,6 +78,8 @@ def parse_args():
     parser.add_argument('--save_dir', type=str, default='checkpoints',
                         help='模型保存目录')
     
+
+
     # 显示小波类型选项
     wavelets = get_available_wavelets()
     if len(wavelets) > 0:
@@ -97,8 +100,6 @@ def set_seed(seed):
     torch.backends.cudnn.benchmark = False
 
 def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, device, num_epochs=25, save_dir='checkpoints'):
-
-   
 
     """
     训练模型函数
@@ -307,16 +308,16 @@ def main():
     model_interface = MInterface(
         num_classes=args.num_classes,
         dropout_rate=args.dropout_rate,
-        use_wavelet=args.use_wavelet,
         wavelet_type=args.wavelet_type,
-        device=device
+        device=device,
+        model_type = args.model_type
     )
     
     # 使用MInterface的model属性获取模型（修复原代码中的索引访问）
     model = model_interface.model
     
     # 显示模型信息
-    if args.use_wavelet:
+    if args.model_type == 'waveletcnn':
         print(f"\n使用小波变换CNN，小波类型: {args.wavelet_type}")
     else:
         print("\n使用标准CNN模型")

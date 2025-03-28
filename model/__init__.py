@@ -9,10 +9,10 @@
 # here put the import lib
 from .model_interface import (
     MInterface, 
-    Model, 
-    BasicBlock, 
-    WaveletCNN, 
-    WaveletTransform, 
+    # Model, 
+    # BasicBlock, 
+    # WaveletCNN, 
+    # WaveletTransform, 
     create_cnn_model, 
     get_recommended_configs, 
     get_available_wavelets
@@ -20,11 +20,11 @@ from .model_interface import (
 
 __all__ = [
     'MInterface',
-    'Model', 
-    'BasicBlock',
-    'WaveletCNN',
-    'WaveletTransform',
-    'create_cnn_model',
+    # 'Model', 
+    # 'BasicBlock',
+    # 'WaveletCNN',
+    # 'WaveletTransform',
+    # 'create_cnn_model',
     'get_recommended_configs',
     'get_available_wavelets'
 ]
