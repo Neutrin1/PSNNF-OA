@@ -40,7 +40,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='乳腺癌分类训练脚本')
     
     # 数据参数
-    parser.add_argument('--data_path', type=str, default='E:/Dataset/dogs-vs-cats-redux-kernels-edition',
+    parser.add_argument('--data_path', type=str, default='none',
                         help='数据集根目录')
     parser.add_argument('--batch_size', type=int, default=32,
                         help='训练批量大小')
@@ -155,7 +155,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
             with tqdm(dataloader, desc=f"{phase}", leave=False) as batch_pbar:
                 for inputs, labels in batch_pbar:
                     inputs = inputs.to(device)
-                    labels = labels.to(device)
+                    labels = labels.long().to(device)  # Convert labels to integer type
                     
                     # 清零梯度
                     optimizer.zero_grad()
@@ -290,23 +290,24 @@ def main():
     )
     
     # 获取数据加载器
-    train_loader = data_interface.train_dataloader()
-    val_loader = data_interface.val_dataloader()
-    test_loader = data_interface.test_dataloader()
+    train_loader = data_interface.train_dataset
+    val_loader = data_interface.val_dataset
+    test_loader = data_interface.test_dataset
     
-    # 显示数据集信息
-    dataset_info = data_interface.get_dataset_info()
-    print("\n数据集信息:")
-    print(f"- 训练集大小: {dataset_info['dataset_sizes']['train']}")
-    print(f"- 验证集大小: {dataset_info['dataset_sizes']['val']}")
-    print(f"- 测试集大小: {dataset_info['dataset_sizes']['test']}")
-    print(f"- 类别分布：")
-    for class_name, count in dataset_info['class_distribution']['train'].items():
-        print(f"  * {class_name}: {count}")
+    if args.data_path != 'none':
+        # 显示数据集信息
+        dataset_info = data_interface.get_dataset_info()
+        print("\n数据集信息:")
+        print(f"- 训练集大小: {dataset_info['dataset_sizes']['train']}")
+        print(f"- 验证集大小: {dataset_info['dataset_sizes']['val']}")
+        print(f"- 测试集大小: {dataset_info['dataset_sizes']['test']}")
+        print(f"- 类别分布：")
+        for class_name, count in dataset_info['class_distribution']['train'].items():
+            print(f"  * {class_name}: {count}")
     
     # 创建模型接口
     model_interface = MInterface(
-        num_classes=args.num_classes,
+        num_classes=100,
         dropout_rate=args.dropout_rate,
         wavelet_type=args.wavelet_type,
         device=device,

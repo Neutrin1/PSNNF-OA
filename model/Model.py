@@ -13,9 +13,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 from typing import Optional, Tuple, List
 import numpy as np
-
-from model_parts import BasicBlock, WaveletTransform
-from unet_parts import *
+# 基础组件
+from model.model_parts import BasicBlock, WaveletTransform
+# unet组件
+from model.unet_parts import *
 
 class Model(nn.Module):
     """基础深度CNN分类器"""

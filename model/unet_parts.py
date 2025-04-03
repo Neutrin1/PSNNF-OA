@@ -1,4 +1,4 @@
-""" Parts of the U-Net model """
+""" U-Net模型的组件 """
 
 import torch
 import torch.nn as nn
@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 
 class DoubleConv(nn.Module):
-    """(convolution => [BN] => ReLU) * 2"""
+    """(卷积 => [BN] => ReLU) * 2"""
 
     def __init__(self, in_channels, out_channels, mid_channels=None):
         super().__init__()
@@ -24,9 +24,9 @@ class DoubleConv(nn.Module):
     def forward(self, x):
         return self.double_conv(x)
 
-
+ 
 class Down(nn.Module):
-    """Downscaling with maxpool then double conv"""
+    """使用maxpool进行下采样，然后双卷积"""
 
     def __init__(self, in_channels, out_channels):
         super().__init__()
@@ -40,12 +40,12 @@ class Down(nn.Module):
 
 
 class Up(nn.Module):
-    """Upscaling then double conv"""
+    """上采样然后双卷积"""
 
     def __init__(self, in_channels, out_channels, bilinear=True):
         super().__init__()
 
-        # if bilinear, use the normal convolutions to reduce the number of channels
+        # 如果是双线性插值，使用普通卷积减少通道数
         if bilinear:
             self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
             self.conv = DoubleConv(in_channels, out_channels, in_channels // 2)
@@ -55,13 +55,13 @@ class Up(nn.Module):
 
     def forward(self, x1, x2):
         x1 = self.up(x1)
-        # input is CHW
+        # 输入是CHW格式
         diffY = x2.size()[2] - x1.size()[2]
         diffX = x2.size()[3] - x1.size()[3]
 
         x1 = F.pad(x1, [diffX // 2, diffX - diffX // 2,
                         diffY // 2, diffY - diffY // 2])
-        # if you have padding issues, see
+        # 如果你有填充问题，请参见
         # https://github.com/HaiyongJiang/U-Net-Pytorch-Unstructured-Buggy/commit/0e854509c2cea854e247a9c615f175f76fbb2e3a
         # https://github.com/xiaopeng-liao/Pytorch-UNet/commit/8ebac70e633bac59fc22bb5195e513d5832fb3bd
         x = torch.cat([x2, x1], dim=1)

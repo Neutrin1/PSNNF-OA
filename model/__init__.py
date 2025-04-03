@@ -13,7 +13,7 @@ from .model_interface import (
     # BasicBlock, 
     # WaveletCNN, 
     # WaveletTransform, 
-    create_cnn_model, 
+    # create_cnn_model, 
     get_recommended_configs, 
     get_available_wavelets
 )

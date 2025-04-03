@@ -24,7 +24,8 @@ from typing import Optional, Tuple, List
 import numpy as np
 import os
 import pywt
-from Model import *
+from model.model import Model, UNet
+
 """
     创建模型接口
 """
