@@ -28,6 +28,7 @@ from torch.amp import autocast, GradScaler
 
 # 导入自定义模块
 from data.data_interface import BreastCancerDataset, DInterface
+
 from model.model_interface import MInterface, get_available_wavelets
 plt.rcParams['font.sans-serif'] = ['SimHei']  # 用来正常显示中文标签
 plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示负号
@@ -40,7 +41,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='乳腺癌分类训练脚本')
     
     # 数据参数
-    parser.add_argument('--data_path', type=str, default='none',
+    parser.add_argument('--data_path', type=str, default='E:\Dataset\mini-imagenet\Mini-ImageNet-Dataset',
                         help='数据集根目录')
     parser.add_argument('--batch_size', type=int, default=32,
                         help='训练批量大小')
@@ -155,7 +156,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
             with tqdm(dataloader, desc=f"{phase}", leave=False) as batch_pbar:
                 for inputs, labels in batch_pbar:
                     inputs = inputs.to(device)
-                    labels = labels.long().to(device)  # Convert labels to integer type
+                    labels = torch.tensor(labels, dtype=torch.long, device=device)
                     
                     # 清零梯度
                     optimizer.zero_grad()
@@ -296,7 +297,7 @@ def main():
     
     if args.data_path != 'none':
         # 显示数据集信息
-        dataset_info = data_interface.get_dataset_info()
+        dataset_info = data_interface.get_dataset_info(root_path=args.data_path)
         print("\n数据集信息:")
         print(f"- 训练集大小: {dataset_info['dataset_sizes']['train']}")
         print(f"- 验证集大小: {dataset_info['dataset_sizes']['val']}")

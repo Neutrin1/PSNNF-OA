@@ -83,6 +83,8 @@ class BasicBlock(nn.Module):
             
         return x
 
+
+
 class WaveletTransform(nn.Module):
     """小波变换层，用于多维特征提取"""
     def __init__(self, wavelet='db1', mode='symmetric', level=1):

@@ -25,8 +25,9 @@ import matplotlib.pyplot as plt
 import warnings 
 warnings.filterwarnings('ignore')
 import MLclf
-from data.datalist import BreastCancerDataset, MiniImageNetDataset
 
+# 导入数据类
+from .datalist import BreastCancerDataset
 
 
 
@@ -83,7 +84,7 @@ class DInterface:
         pin_memory=True
     ):
         """
-        初始化乳腺癌数据模块
+        初始化数据接口模块
         
         Args:
             root_path (str): 数据集根目录
@@ -92,7 +93,7 @@ class DInterface:
             transform_config (str): 使用的转换配置名称
             pin_memory (bool): 是否使用固定内存加速GPU训练
         """
-        self.root_path =  'none'
+        self.root_path =  root_path
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.pin_memory = pin_memory
@@ -116,68 +117,62 @@ class DInterface:
             std=self.config["std"]
         )
         
-        # self._setup()
+        self._setup()
 
-
-        dataset = MiniImageNetDataset()
-
-        self.train_dataset = dataset.train_loader
-        self.val_dataset = dataset.validation_loader
-        self.test_dataset = dataset.test_loader
-    # def _setup(self):
-    #     """准备数据集"""
-    #     # 创建数据集
-    #     self.train_dataset = MiniImageNetDataset(
-    #         self.root_path, 'train', self.train_transform)
+    def _setup(self):
+        """准备数据集"""
+        # 创建数据集
+        self.train_dataset = BreastCancerDataset(
+            self.root_path, 'train', self.train_transform)
         
-    #     self.val_dataset = MiniImageNetDataset(
-    #         self.root_path, 'val', self.val_transform)
+        self.val_dataset = BreastCancerDataset(
+            self.root_path, 'val', self.val_transform)
         
-    #     self.test_dataset = MiniImageNetDataset(
-    #         self.root_path, 'test', self.val_transform)
+        self.test_dataset = BreastCancerDataset(
+            self.root_path, 'test', self.val_transform)
     
     
-    # def train_dataloader(self):
-    #     """返回训练数据加载器"""
-    #     return DataLoader(
-    #         self.train_dataset,
-    #         batch_size=self.batch_size,
-    #         shuffle=True,
-    #         # num_workers=self.num_workers,
-    #         # pin_memory=self.pin_memory,
-    #         # drop_last=True,
-    #         # persistent_workers=True  # 添加此参数
-    #     )
+    def train_dataloader(self):
+        """返回训练数据加载器"""
+        return DataLoader(
+            self.train_dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            # num_workers=self.num_workers,
+            # pin_memory=self.pin_memory,
+            # drop_last=True,
+            # persistent_workers=True  # 添加此参数
+        )
     
-    # def val_dataloader(self):
-    #     """返回验证数据加载器"""
-    #     return DataLoader(
-    #         self.val_dataset,
-    #         batch_size=self.batch_size,
-    #         shuffle=True,
-    #         # num_workers=self.num_workers,
-    #         # pin_memory=self.pin_memory,
-    #         # persistent_workers=True  # 添加此参数
-    #     )
+    def val_dataloader(self):
+        """返回验证数据加载器"""
+        return DataLoader(
+            self.val_dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            # num_workers=self.num_workers,
+            # pin_memory=self.pin_memory,
+            # persistent_workers=True  # 添加此参数
+        )
     
-    # def test_dataloader(self):
-    #     """返回测试数据加载器"""
-    #     return DataLoader(
-    #         self.test_dataset,
-    #         batch_size=self.batch_size,
-    #         shuffle=False,
-    #         # num_workers=self.num_workers,
-    #         # pin_memory=self.pin_memory
-    #     )
+    def test_dataloader(self):
+        """返回测试数据加载器"""
+        return DataLoader(
+            self.test_dataset,
+            batch_size=self.batch_size,
+            shuffle=False,
+            # num_workers=self.num_workers,
+            # pin_memory=self.pin_memory
+        )
     
 
-    def get_dataset_info(self):
+    def get_dataset_info(self, root_path):
         """获取数据集信息"""
         train_dist = self.train_dataset.count_class_distribution()
         val_dist = self.val_dataset.count_class_distribution()
         test_dist = self.test_dataset.count_class_distribution()
         
-        class_names = BreastCancerDataset.get_class_names()
+        class_names = BreastCancerDataset.get_class_names(root_dir=root_path)
         
         info = {
             "dataset_sizes": {
@@ -194,11 +189,10 @@ class DInterface:
         return info
 
 
-
-# 简单使用示例
+# 实例化数据接口并获取数据集信息
 if __name__ == "__main__":
     # 设置数据集路径
-    root_path = 'NULL'
+    root_path = "E:\Dataset\mini-imagenet\Mini-ImageNet-Dataset"
     # 创建数据接口实例
     data_interface = DInterface(
         root_path=root_path,
@@ -210,7 +204,7 @@ if __name__ == "__main__":
     if root_path != 'NULL':
         # 检查数据集路径是否存在
         # 获取数据集信息
-        dataset_info = data_interface.get_dataset_info()
+        dataset_info = data_interface.get_dataset_info(root_path=root_path)
         print("数据集信息:")
         print(f"- 训练集大小: {dataset_info['dataset_sizes']['train']}")
         print(f"- 验证集大小: {dataset_info['dataset_sizes']['val']}")
@@ -278,7 +272,7 @@ if __name__ == "__main__":
             img, label = data_interface.train_dataset[idx]
             plt.subplot(1, 5, i+1)
             imshow(img)
-            plt.title(f"类别: {BreastCancerDataset.get_class_names()[label]}", fontsize=12)
+            plt.title(f"类别: {BreastCancerDataset.get_class_names(root_dir=root_path)[label]}", fontsize=12)
         
         plt.tight_layout()
         plt.show()
