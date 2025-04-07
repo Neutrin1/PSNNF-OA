@@ -23,25 +23,6 @@ from model.model_interface import MInterface
 
 
 # Define dataset for test images
-class DogsVsCatsTestDataset(Dataset):
-    def __init__(self, test_dir, transform=None):
-        self.test_dir = test_dir
-        self.transform = transform
-        self.image_files = [f for f in os.listdir(test_dir) if f.endswith('.jpg')]
-        self.image_files.sort(key=lambda x: int(x.split('.')[0]))
-        
-    def __len__(self):
-        return len(self.image_files)
-    
-    def __getitem__(self, idx):
-        img_path = os.path.join(self.test_dir, self.image_files[idx])
-        image = Image.open(img_path).convert('RGB')
-        img_id = int(self.image_files[idx].split('.')[0])
-        
-        if self.transform:
-            image = self.transform(image)
-            
-        return image, img_id
 
 # Define transforms
 test_transform = transforms.Compose([

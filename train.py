@@ -183,9 +183,11 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
                         scaler.step(optimizer)
                         scaler.update()
                     else:
-                        # 验证阶段使用全精度
-                        outputs = model(inputs)
-                        loss = criterion(outputs, labels)
+                        with torch.no_grad():
+                            with autocast(device_type='cuda'):
+                            # 验证阶段使用混合精度
+                                outputs = model(inputs)
+                                loss = criterion(outputs, labels)
                     
                     # 获取预测结果
                     _, preds = torch.max(outputs, 1)
