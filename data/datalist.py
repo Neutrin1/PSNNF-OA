@@ -21,10 +21,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 from MLclf import MLclf
 
-# 乳腺癌数据集
-# （改猫狗测试用）
 
-class BreastCancerDataset(Dataset):
+class ImageDataset(Dataset):
     """乳腺癌图像分类数据集"""
 
     def __init__(self, root_dir, subset, transform=None):

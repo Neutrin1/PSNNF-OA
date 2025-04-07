@@ -9,4 +9,4 @@
 # here put the import lib
 from .data_interface import BreastCancerDataset, DInterface
 
-__all__ = ['BreastCancerDataset', 'DInterface']
+__all__ = ['ImageDataset', 'DInterface']

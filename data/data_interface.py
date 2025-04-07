@@ -27,7 +27,7 @@ warnings.filterwarnings('ignore')
 import MLclf
 
 # 导入数据类
-from .datalist import BreastCancerDataset
+from .datalist import ImageDataset
 
 
 
@@ -53,8 +53,6 @@ def get_val_transforms(input_size=(224, 224), mean=[0.485, 0.456, 0.406], std=[0
         transforms.ToTensor(),
         transforms.Normalize(mean, std)
     ])
-
-
 
 
 # 预定义的转换配置
@@ -122,13 +120,13 @@ class DInterface:
     def _setup(self):
         """准备数据集"""
         # 创建数据集
-        self.train_dataset = BreastCancerDataset(
+        self.train_dataset = ImageDataset(
             self.root_path, 'train', self.train_transform)
         
-        self.val_dataset = BreastCancerDataset(
+        self.val_dataset = ImageDataset(
             self.root_path, 'val', self.val_transform)
         
-        self.test_dataset = BreastCancerDataset(
+        self.test_dataset = ImageDataset(
             self.root_path, 'test', self.val_transform)
     
     
@@ -172,7 +170,7 @@ class DInterface:
         val_dist = self.val_dataset.count_class_distribution()
         test_dist = self.test_dataset.count_class_distribution()
         
-        class_names = BreastCancerDataset.get_class_names(root_dir=root_path)
+        class_names = ImageDataset.get_class_names(root_dir=root_path)
         
         info = {
             "dataset_sizes": {
@@ -272,7 +270,7 @@ if __name__ == "__main__":
             img, label = data_interface.train_dataset[idx]
             plt.subplot(1, 5, i+1)
             imshow(img)
-            plt.title(f"类别: {BreastCancerDataset.get_class_names(root_dir=root_path)[label]}", fontsize=12)
+            plt.title(f"类别: {ImageDataset.get_class_names(root_dir=root_path)[label]}", fontsize=12)
         
         plt.tight_layout()
         plt.show()

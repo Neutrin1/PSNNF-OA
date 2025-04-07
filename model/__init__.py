@@ -9,22 +9,22 @@
 # here put the import lib
 from .model_interface import (
     MInterface, 
-    # Model, 
-    # BasicBlock, 
-    # WaveletCNN, 
-    # WaveletTransform, 
-    # create_cnn_model, 
     get_recommended_configs, 
     get_available_wavelets
 )
 
 __all__ = [
     'MInterface',
-    # 'Model', 
-    # 'BasicBlock',
-    # 'WaveletCNN',
-    # 'WaveletTransform',
-    # 'create_cnn_model',
     'get_recommended_configs',
     'get_available_wavelets'
 ]
+
+
+from efficientnet import EfficientNet, VALID_MODELS
+from efficientnet_utils import (
+    GlobalParams,
+    BlockArgs,
+    BlockDecoder,
+    efficientnet,
+    get_model_params,
+)

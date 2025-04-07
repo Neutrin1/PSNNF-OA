@@ -24,7 +24,15 @@ from typing import Optional, Tuple, List
 import numpy as np
 import os
 import pywt
-from model.model import Model, UNet
+import datetime
+
+from mymodel import Model,WaveletCNN
+# unet
+from unet import UNet
+# efficientnet
+from efficientnet import EfficientNet
+
+
 
 """
     创建模型接口
@@ -89,13 +97,16 @@ class MInterface:
                 layer_config=self.layer_config,
                 dropout_rate=self.dropout_rate
             )
-            print("使用标准CNN模型")
-        else:                               #Unet网络
+            print("使用我的CNN模型")
+        elif self.model_type == UNet:                               #Unet网络
             model = UNet(
                 in_channels=self.in_channels,
                 num_classes=self.num_classes,
             )
-        
+            print("使用Unet模型")
+        else :
+            model = EfficientNet()
+            print("使用EfficientNetB0模型")
         # 移动模型到指定设备
         model = model.to(self.device)
         
@@ -165,11 +176,14 @@ def create_model(
             use_adaptive_pool=use_adaptive_pool,
             dropout_rate=dropout_rate
         )
-    else:
-        model = UNet(
-            in_channels=in_channels,
-            num_classes=num_classes,
+    elif model_type == UNet:                               #Unet网络
+            model = UNet(
+                in_channels=in_channels,
+                num_classes=num_classes,
         )
+    
+    else :
+        model = EfficientNet.from_name('efficientnet-b0')
 
     if device is not None:
         model = model.to(device)
@@ -208,14 +222,18 @@ def get_available_wavelets():
     return pywt.wavelist(family=None)
 
 if __name__ == "__main__":
+
     # 创建日志文件
-    log_file = "model_test_results.txt"
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file = f"model_test_results_{timestamp}.txt"
+
     with open(log_file, "w", encoding="utf-8") as f:
         # 测试各种模型
         models_to_test = {
             "标准CNN": {"model_type": "cnn"},
             "小波CNN": {"model_type": "waveletcnn", "wavelet_type": "db4"},
-            "UNet": {"model_type": "unet"}
+            "UNet": {"model_type": "unet"},
+            "EfficientNet": {"model_type": "efficientnet"}
         }
         
         # 测试模型创建函数
@@ -250,5 +268,11 @@ if __name__ == "__main__":
         unet_model, _ = create_model(num_classes=2, model_type="unet")
         print_model_structure(unet_model)
         f.write(str(unet_model))
+
+        # 测试EfficientNet模型
+        f.write("\n=== 测试EfficientNet模型 ===\n")
+        efficientnet_model, _ = create_model(num_classes=2, model_type="efficientnet")
+        print_model_structure(efficientnet_model)
+        f.write(str(efficientnet_model))
     
     print(f"模型测试结果已保存到 {log_file}")
