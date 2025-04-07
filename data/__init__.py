@@ -7,6 +7,6 @@
 '''
 
 # here put the import lib
-from .data_interface import BreastCancerDataset, DInterface
+from .data_interface import ImageDataset, DInterface
 
 __all__ = ['ImageDataset', 'DInterface']

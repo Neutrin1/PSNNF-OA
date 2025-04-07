@@ -20,8 +20,8 @@ __all__ = [
 ]
 
 
-from efficientnet import EfficientNet, VALID_MODELS
-from efficientnet_utils import (
+from .efficientnet import EfficientNet, VALID_MODELS
+from .efficientnet_utils import (
     GlobalParams,
     BlockArgs,
     BlockDecoder,

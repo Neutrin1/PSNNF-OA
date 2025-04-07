@@ -12,7 +12,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 # EfficientNet参数
-from efficientnet_utils import (
+from .efficientnet_utils import (
     round_filters,
     round_repeats,
     drop_connect,
@@ -169,6 +169,7 @@ class EfficientNet(nn.Module):
     def __init__(self, blocks_args=None, global_params=None):
         super().__init__()
         assert isinstance(blocks_args, list), 'blocks_args应该是一个列表'
+        
         assert len(blocks_args) > 0, 'block args必须大于0'
         self._global_params = global_params
         self._blocks_args = blocks_args
@@ -314,7 +315,10 @@ class EfficientNet(nn.Module):
             处理后的模型输出。
         """
         # 卷积层
-        x = self.extract_features(inputs)
+        if inputs.dim() == 3:
+            inputs = inputs.unsqueeze(0)
+            
+        x = self.extract_features(inputs) 
         # 池化和最终线性层
         x = self._avg_pooling(x)
         if self._global_params.include_top:

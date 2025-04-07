@@ -26,11 +26,11 @@ import os
 import pywt
 import datetime
 
-from mymodel import Model,WaveletCNN
+from .mymodel import Model,WaveletCNN
 # unet
-from unet import UNet
+from .unet import UNet
 # efficientnet
-from efficientnet import EfficientNet
+from .efficientnet import EfficientNet
 
 
 
@@ -105,7 +105,7 @@ class MInterface:
             )
             print("使用Unet模型")
         else :
-            model = EfficientNet()
+            model = EfficientNet.from_name('efficientnet-b0')
             print("使用EfficientNetB0模型")
         # 移动模型到指定设备
         model = model.to(self.device)

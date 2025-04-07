@@ -27,7 +27,7 @@ from torch.amp import autocast, GradScaler
 
 
 # 导入自定义模块
-from data.data_interface import BreastCancerDataset, DInterface
+from data.data_interface import ImageDataset, DInterface
 
 from model.model_interface import MInterface, get_available_wavelets
 plt.rcParams['font.sans-serif'] = ['SimHei']  # 用来正常显示中文标签
@@ -50,9 +50,9 @@ def parse_args():
     
     # 模型参数
     parser.add_argument('--model_type', type=str, default='cnn',
-                        choices=['cnn', 'waveletcnn','resnet50', 'efficientnet_b0', 'mobilenetv2_100'],
+                        choices=['cnn', 'waveletcnn','resnet50', 'efficientnet_b0', 'mobilenetv2_100','unet'],
                         help='模型类型')
-    parser.add_argument('--num_classes', type=int, default=2,
+    parser.add_argument('--num_classes', type=int, default=100,
                         help='分类类别数')
     parser.add_argument('--dropout_rate', type=float, default=0.5,
                         help='Dropout比率')
@@ -171,7 +171,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
                     #     if phase == 'train':
                     #         loss.backward()
                     #         optimizer.step()
-                    
+
                     if phase == 'train':
                         # 训练阶段使用混合精度
                         with autocast(device_type='cuda'):
@@ -291,9 +291,9 @@ def main():
     )
     
     # 获取数据加载器
-    train_loader = data_interface.train_dataset
-    val_loader = data_interface.val_dataset
-    test_loader = data_interface.test_dataset
+    train_loader = data_interface.train_dataloader()
+    val_loader = data_interface.val_dataloader()
+    test_loader = data_interface.test_dataloader()
     
     if args.data_path != 'none':
         # 显示数据集信息
@@ -319,11 +319,19 @@ def main():
     model = model_interface.model
     
     # 显示模型信息
-    if args.model_type == 'waveletcnn':
-        print(f"\n使用小波变换CNN，小波类型: {args.wavelet_type}")
-    else:
-        print("\n使用标准CNN模型")
-    print(f"模型参数数量: {model_interface.param_count:,}")
+    print(f"\n使用模型: {args.model_type}")
+    print(f"模型结构概述:")
+    total_params = sum(p.numel() for p in model.parameters())
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"- 总参数量: {total_params:,}")
+    print(f"- 可训练参数量: {trainable_params:,}")
+
+    # 显示模型架构概要
+    print(f"- 模型架构:")
+    model_summary = str(model).split('\n')[:10]  # 只显示前10行
+    print('\n'.join(f"  {line}" for line in model_summary))
+    if len(str(model).split('\n')) > 10:
+        print(f"  ... (完整架构太长，仅显示部分)")
     
     # 定义损失函数和优化器
     criterion = nn.CrossEntropyLoss()
@@ -372,6 +380,7 @@ def main():
             
             outputs = model(inputs)
             _, preds = torch.max(outputs, 1)
+
             loss = criterion(outputs, labels)
             
             test_loss += loss.item() * inputs.size(0)

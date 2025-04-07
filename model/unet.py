@@ -11,7 +11,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 # unet组件
-from unet_parts import *
+from .unet_parts import *
 
 
 # 创建Unet网络

@@ -14,7 +14,7 @@ import torch.nn.functional as F
 from typing import Optional, Tuple, List
 import numpy as np
 # 基础组件
-from mymodel_parts import BasicBlock, WaveletTransform
+from .mymodel_parts import BasicBlock, WaveletTransform
 
 
 
