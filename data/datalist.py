@@ -23,11 +23,11 @@ from MLclf import MLclf
 
 
 class ImageDataset(Dataset):
-    """乳腺癌图像分类数据集"""
+    """图像分类数据集"""
 
     def __init__(self, root_dir, subset, transform=None):
         """
-        初始化乳腺癌数据集
+        初始化
         
         Args:
             root_dir (str): 数据集根目录

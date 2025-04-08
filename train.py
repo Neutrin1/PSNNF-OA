@@ -41,7 +41,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='乳腺癌分类训练脚本')
     
     # 数据参数
-    parser.add_argument('--data_path', type=str, default='D:\Dataset\mini-imagenet\Mini-ImageNet-Dataset',
+    parser.add_argument('--data_path', type=str, default='E:\Dataset\mini-imagenet\Mini-ImageNet-Dataset',
                         help='数据集根目录')
     parser.add_argument('--batch_size', type=int, default=32,
                         help='训练批量大小')

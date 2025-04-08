@@ -21,6 +21,8 @@ import torch.nn.functional as F
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 import seaborn as sns
 import argparse
+import random
+import datetime
 # 设置matplotlib中文字体
 import matplotlib
 matplotlib.rcParams['font.sans-serif'] = ['SimHei']  # 指定默认字体为黑体
@@ -169,5 +171,66 @@ def main():
     results_df.to_csv('test_results.csv', index=False)
     print(f"详细结果已保存到 test_results.csv")
 
+
+    # 可视化预测概率分布
+    plt.figure(figsize=(12, 6))
+    for i, class_name in enumerate(class_names):
+        probs = np.array(all_probs)[np.array(all_labels) == i]
+        plt.hist(probs[:, i], bins=50, alpha=0.5, label=class_name, density=True)
+    plt.title('预测概率分布')
+    
+    # 可视化预测结果
+    # 随机选择6张图像进行预测可视化
+    print("\n随机选择6张图像进行预测可视化...")
+    # 创建一个新的数据集，不应用变换，保留原始图像
+    vis_dataset = TestDataset(data_dir=args.data_dir, transform=None)
+    
+
+
+    num_samples = min(6, len(vis_dataset))
+    random_indices = random.sample(range(len(vis_dataset)), num_samples)
+    
+    plt.figure(figsize=(15, 10))
+    for i, idx in enumerate(random_indices):
+        # 获取原始图像和标签
+        image, label = vis_dataset[idx]
+        
+        # 应用变换以用于预测
+        trans_image = test_transforms(image)
+        trans_image = trans_image.unsqueeze(0).to(device)  # 添加批次维度
+        
+        # 进行预测
+        with torch.no_grad():
+            with torch.amp.autocast(device.type, enabled=True):
+                output = model(trans_image)
+            
+        # 获取预测结果
+        _, pred = torch.max(output, 1)
+        pred_class = pred.item()
+        prob = F.softmax(output, dim=1)[0][pred_class].item()
+        
+        # 获取类别名称
+        true_class_name = class_names[label]
+        pred_class_name = class_names[pred_class]
+        
+        # 设置颜色：绿色表示正确预测，红色表示错误预测
+        color = 'green' if pred_class == label else 'red'
+        
+        # 绘制图像和预测结果
+        plt.subplot(2, 3, i+1)
+        plt.imshow(np.array(image))
+        plt.title(f"预测: {pred_class_name}\n真实: {true_class_name}\n概率: {prob:.2f}", 
+                 color=color, fontsize=10)
+        plt.axis('off')
+    
+    plt.tight_layout()
+    plt.savefig('random_predictions.png', dpi=150)
+    # 使用时间戳命名保存的图片
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    prediction_filename = f'random_predictions_{timestamp}.png'
+    plt.savefig(prediction_filename, dpi=150)
+    print(f"随机预测结果已保存到 {prediction_filename}")
+    plt.show()
+    
 if __name__ == "__main__":
     main()
