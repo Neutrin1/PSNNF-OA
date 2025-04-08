@@ -41,7 +41,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='乳腺癌分类训练脚本')
     
     # 数据参数
-    parser.add_argument('--data_path', type=str, default='E:\Dataset\mini-imagenet\Mini-ImageNet-Dataset',
+    parser.add_argument('--data_path', type=str, default='D:\Dataset\mini-imagenet\Mini-ImageNet-Dataset',
                         help='数据集根目录')
     parser.add_argument('--batch_size', type=int, default=32,
                         help='训练批量大小')
@@ -50,7 +50,9 @@ def parse_args():
     
     # 模型参数
     parser.add_argument('--model_type', type=str, default='cnn',
-                        choices=['cnn', 'waveletcnn','resnet50', 'efficientnet_b0', 'mobilenetv2_100','unet'],
+                        choices=['cnn', 'waveletcnn', 'efficientnet-b0', 'mobilenetv2_100','unet', 'efficientnet-b0', 'efficientnet-b1', 'efficientnet-b2', 'efficientnet-b3',
+                        'efficientnet-b4', 'efficientnet-b5', 'efficientnet-b6', 'efficientnet-b7','efficientnet-b8','vgg11_bn','vgg13_bn','vgg16_bn','vgg19_bn','resnet18',
+                        'resnet34','resnet50','resnet101','resnet152','GoogleNet'],
                         help='模型类型')
     parser.add_argument('--num_classes', type=int, default=100,
                         help='分类类别数')
@@ -66,7 +68,7 @@ def parse_args():
                         help='小波变换类型')
     
     # 训练参数
-    parser.add_argument('--epochs', type=int, default=100,
+    parser.add_argument('--epochs', type=int, default=50,
                         help='训练轮数')
     parser.add_argument('--lr', type=float, default=0.001,
                         help='初始学习率')
@@ -186,6 +188,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
                         with torch.no_grad():
                             with autocast(device_type='cuda'):
                             # 验证阶段使用混合精度
+                                # 验证阶段使用混合精度
                                 outputs = model(inputs)
                                 loss = criterion(outputs, labels)
                     
