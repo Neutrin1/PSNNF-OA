@@ -31,7 +31,7 @@ from .mymodel import Model,WaveletCNN
 from .unet import UNet
 # efficientnet
 from .efficientnet import EfficientNet
-
+from .resnet import resnet18, resnet50, resnet34, resnet101, resnet152
 
 
 """
@@ -43,7 +43,7 @@ class MInterface:
     
     def __init__(self, 
                  in_channels: int = 3, 
-                 num_classes: int = 2, 
+                 num_classes: int = 1000, 
                  layer_config: Optional[List[Tuple[int, int, int]]] = None, 
                  dropout_rate: float = 0.5, 
                  wavelet_type: str = 'db1',
@@ -89,7 +89,7 @@ class MInterface:
                 dropout_rate=self.dropout_rate,
                 wavelet_type=self.wavelet_type
             )
-            print(f"使用小波变换CNN模型，小波类型: {self.wavelet_type}")
+            print(f"使用{self.model_type}模型，小波类型: {self.wavelet_type}")
         elif self.model_type == 'cnn':
             model = Model(
                 in_channels=self.in_channels,
@@ -97,16 +97,52 @@ class MInterface:
                 layer_config=self.layer_config,
                 dropout_rate=self.dropout_rate
             )
-            print("使用我的CNN模型")
+            print(f"使用{self.model_type}模型")
         elif self.model_type == UNet:                               #Unet网络
             model = UNet(
                 in_channels=self.in_channels,
                 num_classes=self.num_classes,
             )
-            print("使用Unet模型")
+            print(f"使用{self.model_type}模型")
+
+        elif self.model_type.startswith('efficientnet-'):
+        # 直接使用 self.model_type 作为模型名称
+            model = EfficientNet.from_name(self.model_type, num_classes=self.num_classes)
+            print(f"使用 {self.model_type} 模型，类别数: {self.num_classes}")
+            
+        elif self.model_type == 'resnet18':
+            model = resnet18(num_classes=self.num_classes)
+            print(f"使用{self.model_type}模型")
+
+        elif self.model_type == 'resnet50':
+            model = resnet18(num_classes=self.num_classes)
+            print(f"使用{self.model_type}模型")
+
+        elif self.model_type == 'resnet18':
+            model = resnet18(num_classes=self.num_classes)
+            print(f"使用 {self.model_type} 模型")
+
+        elif self.model_type == 'resnet34':
+            model = resnet34(num_classes=self.num_classes)
+            print(f"使用 {self.model_type} 模型")
+
+        elif self.model_type == 'resnet50':
+            model = resnet50(num_classes=self.num_classes)  # 修复：使用正确的 resnet50 函数
+            print(f"使用 {self.model_type} 模型")
+            
+        elif self.model_type == 'resnet101':
+            model = resnet101(num_classes=self.num_classes)
+            print(f"使用 {self.model_type} 模型")
+            
+        elif self.model_type == 'resnet152':
+            model = resnet152(num_classes=self.num_classes)
+            print(f"使用 {self.model_type} 模型")
+        
+
         else :
-            model = EfficientNet.from_name('efficientnet-b0')
-            print("使用EfficientNetB0模型")
+            raise ValueError(f"不支持的模型类型: {self.model_type}")
+
+            
         # 移动模型到指定设备
         model = model.to(self.device)
         

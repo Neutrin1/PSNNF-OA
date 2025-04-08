@@ -81,6 +81,12 @@ def parse_args():
     parser.add_argument('--save_dir', type=str, default='checkpoints',
                         help='模型保存目录')
     
+    # 学习率调度器参数
+    parser.add_argument('--lr_scheduler', type=str, default='cosine',
+                      choices=['cosine', 'reduce_plateau', 'step', 'multi_step'],
+                      help='学习率调度器类型')
+    parser.add_argument('--min_lr', type=float, default=1e-6,
+                      help='余弦退火的最小学习率')
 
 
     # 显示小波类型选项
@@ -139,10 +145,18 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         'val_loss': [], 'val_acc': []
     }
     
+    # 添加学习率历史记录
+    history['learning_rate'] = []
     # 使用tqdm显示训练进度
     for epoch in tqdm(range(num_epochs), desc="训练进度"):
         print(f'Epoch {epoch+1}/{num_epochs}')
         
+        # 记录当前学习率
+        current_lr = optimizer.param_groups[0]['lr']
+        history['learning_rate'].append(current_lr)
+        print(f'当前学习率: {current_lr:.6f}')
+
+
         for phase in ['train', 'val']:
             if phase == 'train':
                 model.train()
@@ -208,12 +222,20 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
                         'acc': f'{batch_corrects.double() / inputs.size(0):.4f}'
                     })
             
+
+
             # 计算当前epoch的平均损失和准确率
             epoch_loss = running_loss / len(dataloader.dataset)
             epoch_acc = running_corrects.double() / len(dataloader.dataset)
             
             print(f'{phase} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
-            
+            # 更新学习率
+            if not isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                scheduler.step()
+            else:
+                # ReduceLROnPlateau需要验证损失
+                scheduler.step(epoch_loss)  # 只有在使用ReduceLROnPlateau时才传入损失
+
             # 保存训练记录
             if phase == 'train':
                 history['train_loss'].append(epoch_loss)
@@ -272,6 +294,23 @@ def visualize_training_history(history):
     plt.savefig(save_path)
     print(f"训练历史图表已保存至: {save_path}")
     plt.show()
+
+    if 'learning_rate' in history:
+        plt.figure(figsize=(10, 4))
+        plt.plot(history['learning_rate'], 'o-')
+        plt.xlabel('轮次')
+        plt.ylabel('学习率')
+        plt.title('学习率变化曲线')
+        plt.yscale('log')  # 使用对数刻度更清晰地显示变化
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        lr_save_path = f'learning_rate_{timestamp}.png'
+        plt.savefig(lr_save_path)
+        print(f"学习率变化曲线已保存至: {lr_save_path}")
+        plt.show()
+
+
+ 
+
 
 def main():
     # 解析命令行参数
@@ -343,12 +382,35 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     
     # 学习率调度器
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, 
-        mode='min', 
-        factor=0.1, 
-        patience=5
-    )
+    if args.lr_scheduler == 'cosine':
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer, 
+            T_max=args.epochs, 
+            eta_min=args.min_lr
+        )
+        print(f"使用余弦退火学习率调度器，最小学习率: {args.min_lr}")
+    elif args.lr_scheduler == 'reduce_plateau':
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, 
+            mode='min', 
+            factor=0.1, 
+            patience=5
+        )
+        print("使用ReduceLROnPlateau学习率调度器")
+    elif args.lr_scheduler == 'step':
+        scheduler = torch.optim.lr_scheduler.StepLR(
+            optimizer,
+            step_size=30,
+            gamma=0.1
+        )
+        print("使用StepLR学习率调度器，每30轮降低一次")
+    else:  # multi_step
+        scheduler = torch.optim.lr_scheduler.MultiStepLR(
+            optimizer,
+            milestones=[30, 60, 90],
+            gamma=0.1
+        )
+    print("使用MultiStepLR学习率调度器，在第30/60/90轮降低学习率")
     
     # 训练模型
     print(f"\n开始训练模型...")
