@@ -41,7 +41,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='乳腺癌分类训练脚本')
     
     # 数据参数
-    parser.add_argument('--data_path', type=str, default='E:\Dataset\mini-imagenet\Mini-ImageNet-Dataset',
+    parser.add_argument('--data_path', type=str, default='D:\Dataset\mini-imagenet\Mini-ImageNet-Dataset',
                         help='数据集根目录')
     parser.add_argument('--batch_size', type=int, default=32,
                         help='训练批量大小')
@@ -58,28 +58,26 @@ def parse_args():
                         help='分类类别数')
     parser.add_argument('--dropout_rate', type=float, default=0.5,
                         help='Dropout比率')
-    
-    # 小波变换参数
-    # parser.add_argument('--use_wavelet', action='store_true',
-    #                     help='是否使用小波变换')
+    parser.add_argument('--weight_decay', type=float, default=1e-5,
+                    help='权重衰减参数')
 
+    # 小波变换参数
     parser.add_argument('--wavelet_type', type=str, default='db1',
                         choices=['haar', 'db1', 'db2', 'db4', 'sym2', 'sym4', 'coif1'],
                         help='小波变换类型')
     
     # 训练参数
-    parser.add_argument('--epochs', type=int, default=50,
+    parser.add_argument('--epochs', type=int, default=100,
                         help='训练轮数')
     parser.add_argument('--lr', type=float, default=0.001,
                         help='初始学习率')
-    parser.add_argument('--weight_decay', type=float, default=1e-5,
-                        help='权重衰减参数')
-    
+
     # 其他参数
     parser.add_argument('--seed', type=int, default=42,
                         help='随机种子')
     parser.add_argument('--save_dir', type=str, default='checkpoints',
                         help='模型保存目录')
+
     
     # 学习率调度器参数
     parser.add_argument('--lr_scheduler', type=str, default='cosine',
@@ -308,6 +306,36 @@ def visualize_training_history(history):
         print(f"学习率变化曲线已保存至: {lr_save_path}")
         plt.show()
 
+# 在visualize_training_history函数后添加保存CSV的函数
+
+def save_training_history_to_csv(history, filename=None):
+    """
+    将训练历史保存为CSV文件
+    
+    参数:
+        history: 包含训练历史的字典
+        filename: 保存的文件名（如果为None，则使用时间戳生成）
+    """
+    if filename is None:
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'training_history_{timestamp}.csv'
+    
+    # 创建DataFrame
+    df = pd.DataFrame({
+        'epoch': list(range(1, len(history['train_loss']) + 1)),
+        'train_loss': history['train_loss'],
+        'train_acc': history['train_acc'],
+        'val_loss': history['val_loss'],
+        'val_acc': history['val_acc']
+    })
+    
+    # 如果有学习率历史，也添加到DataFrame中
+    if 'learning_rate' in history:
+        df['learning_rate'] = history['learning_rate']
+    
+    # 保存为CSV文件
+    df.to_csv(filename, index=False)
+    print(f"训练历史数据已保存到: {filename}")
 
  
 
@@ -428,7 +456,9 @@ def main():
     
     # 可视化训练历史
     visualize_training_history(history)
-    
+
+    # 保存训练历史到CSV文件
+    save_training_history_to_csv(history)
     # 保存最终模型
     final_model_path = os.path.join(args.save_dir, 'final_model.pth')
     torch.save(model.state_dict(), final_model_path)

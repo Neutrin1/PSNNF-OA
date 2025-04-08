@@ -43,7 +43,7 @@ class MInterface:
     
     def __init__(self, 
                  in_channels: int = 3, 
-                 num_classes: int = 1000, 
+                 num_classes: int = 100, 
                  layer_config: Optional[List[Tuple[int, int, int]]] = None, 
                  dropout_rate: float = 0.5, 
                  wavelet_type: str = 'db1',

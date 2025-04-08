@@ -35,6 +35,7 @@ from .datalist import ImageDataset
 def get_train_transforms(input_size=(224, 224), mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]):
     """获取训练数据增强转换"""
     return transforms.Compose([
+    transforms.ToPILImage(),
     transforms.RandomResizedCrop(224),
     transforms.RandomHorizontalFlip(),
     transforms.RandomApply([transforms.GaussianBlur(kernel_size=5)], p=0.1),   # 随机高斯模糊

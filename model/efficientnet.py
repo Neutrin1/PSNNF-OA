@@ -58,7 +58,8 @@ class MBConvBlock(nn.Module):
         self._block_args = block_args                           # MBConvBlockArgs，定义在 utils.py 中
         self._bn_mom = 1 - global_params.batch_norm_momentum    # 这是一个全局参数，用于批量归一化
         self._bn_eps = global_params.batch_norm_epsilon         # 这是一个全局参数，用于批量归一化
-        self.has_se = (self._block_args.se_ratio is not None) and (0 < self._block_args.se_ratio <= 1)   # 是否使用SE模块
+        # self.has_se = (self._block_args.se_ratio is not None) and (0 < self._block_args.se_ratio <= 1)   # 是否使用SE模块
+        self.has_se = True 
         self.id_skip = block_args.id_skip                       # 是否使用跳跃连接和drop connect
 
         # 扩展阶段 (倒置瓶颈)
