@@ -43,7 +43,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='乳腺癌分类训练脚本')
     
     # 数据参数
-    parser.add_argument('--data_path', type=str, default='D:\Dataset\mini-imagenet\Mini-ImageNet-Dataset',
+    parser.add_argument('--data_path', type=str, default='D:\\Dataset\\mini-imagenet\\Mini-ImageNet-Dataset',
                         help='数据集根目录')
     parser.add_argument('--batch_size', type=int, default=32,
                         help='训练批量大小')
@@ -620,7 +620,7 @@ def main():
     print(f"- 精确率: {test_precision_macro:.4f} (macro), {test_precision_weighted:.4f} (weighted)")
     print(f"- 召回率: {test_recall_macro:.4f} (macro), {test_recall_weighted:.4f} (weighted)")
     print(f"- F1分数: {test_f1_macro:.4f} (macro), {test_f1_weighted:.4f} (weighted)")
-    
+
     # 打印详细的分类报告
     print("\n分类报告:")
     target_names = class_names if class_names is not None else [f"类别 {i}" for i in range(args.num_classes)]

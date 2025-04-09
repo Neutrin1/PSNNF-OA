@@ -32,7 +32,7 @@ from .unet import UNet
 # efficientnet
 from .efficientnet import EfficientNet
 from .resnet import resnet18, resnet50, resnet34, resnet101, resnet152
-
+from .efficientnet_CBAM import EfficientNet_CBAM
 
 """
     创建模型接口
@@ -138,6 +138,9 @@ class MInterface:
             model = resnet152(num_classes=self.num_classes)
             print(f"使用 {self.model_type} 模型")
         
+        elif self.model_type == 'efficientnet_cbam':
+            model = EfficientNet_CBAM.from_name('efficientnet-b0', num_classes=self.num_classes)
+            print(f"使用 {self.model_type} 模型，类别数: {self.num_classes}")
 
         else :
             raise ValueError(f"不支持的模型类型: {self.model_type}")
