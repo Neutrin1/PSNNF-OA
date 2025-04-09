@@ -77,7 +77,7 @@ class DInterface:
         self, 
         root_path, 
         batch_size=32, 
-        num_workers=4,
+        num_workers=2,
         transform_config="default",
         pin_memory=True
     ):
@@ -136,10 +136,10 @@ class DInterface:
             self.train_dataset,
             batch_size=self.batch_size,
             shuffle=True,
-            # num_workers=self.num_workers,
-            # pin_memory=self.pin_memory,
+            num_workers=self.num_workers,
+            pin_memory=self.pin_memory,
             drop_last=True,
-            # persistent_workers=True  # 添加此参数
+            persistent_workers=True if self.num_workers > 0 else False  # 取消注释并添加条件
         )
     
     def val_dataloader(self):
@@ -147,10 +147,10 @@ class DInterface:
         return DataLoader(
             self.val_dataset,
             batch_size=self.batch_size,
-            shuffle=True,
-            # num_workers=self.num_workers,
-            # pin_memory=self.pin_memory,
-            # persistent_workers=True  # 添加此参数
+            shuffle=False,
+            num_workers=self.num_workers,
+            pin_memory=self.pin_memory,
+            persistent_workers=True if self.num_workers > 0 else False
         )
     
     def test_dataloader(self):
@@ -159,8 +159,8 @@ class DInterface:
             self.test_dataset,
             batch_size=self.batch_size,
             shuffle=False,
-            # num_workers=self.num_workers,
-            # pin_memory=self.pin_memory
+            num_workers=self.num_workers,
+            pin_memory=self.pin_memory
         )
     
 

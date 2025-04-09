@@ -149,6 +149,7 @@ class MInterface:
         # 统计参数量
         total_params = sum(p.numel() for p in model.parameters())
         
+        # 返回模型和参数量
         return model, total_params
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:

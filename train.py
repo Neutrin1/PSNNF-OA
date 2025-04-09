@@ -27,7 +27,7 @@ from torch.amp import autocast, GradScaler
 from sklearn.metrics import roc_curve, auc, roc_auc_score
 from sklearn.preprocessing import label_binarize
 from itertools import cycle
-
+from sklearn.metrics import precision_score, recall_score, f1_score, classification_report, accuracy_score
 # 导入自定义模块
 from data.data_interface import ImageDataset, DInterface
 
@@ -561,10 +561,13 @@ def main():
     model.eval()
     test_loss = 0.0
     test_correct = 0
-    
+    test_top5_correct = 0  # 添加Top-5正确预测计数器
+
+
     all_labels = []
     all_probs = []
-    
+    all_preds = []  # 添加用于收集预测标签的列表
+
     with torch.no_grad():
         for inputs, labels in tqdm(test_loader, desc="测试评估"):
             inputs = inputs.to(device)
@@ -572,22 +575,72 @@ def main():
             
             outputs = model(inputs)
             probs = F.softmax(outputs, dim=1)
+
+            # 计算top-1预测
             _, preds = torch.max(outputs, 1)
-    
+             # 计算Top-5预测
+            _, top5_preds = torch.topk(outputs, k=5, dim=1)
+            # 检查真实标签是否在Top-5预测中
+            top5_correct = torch.sum(top5_preds == labels.unsqueeze(1)).float()
+
+
             loss = criterion(outputs, labels)
             
             test_loss += loss.item() * inputs.size(0)
             test_correct += torch.sum(preds == labels.data)
-            
+            test_top5_correct += top5_correct  # 累加Top-5正确预测
+
             # 收集标签和预测概率
             all_labels.extend(labels.cpu().numpy())
             all_probs.extend(probs.cpu().numpy())
-    
+            all_preds.extend(preds.cpu().numpy())  # 添加预测标签收集
+
+
     test_loss = test_loss / len(test_loader.dataset)
     test_acc = test_correct.double() / len(test_loader.dataset)
+    test_top5_acc = test_top5_correct / len(test_loader.dataset)  # 计算Top-5准确率
+
+
+    # 计算各项性能指标
+    test_accuracy = accuracy_score(all_labels, all_preds)           # 整体准确率
+    # 对于多分类，使用macro和weighted平均
+    test_precision_macro = precision_score(all_labels, all_preds, average='macro')
+    test_precision_weighted = precision_score(all_labels, all_preds, average='weighted')
+    test_recall_macro = recall_score(all_labels, all_preds, average='macro')
+    test_recall_weighted = recall_score(all_labels, all_preds, average='weighted')
+    test_f1_macro = f1_score(all_labels, all_preds, average='macro')
+    test_f1_weighted = f1_score(all_labels, all_preds, average='weighted')
+
+    # 打印性能指标
+    print(f"测试集结果:")
+    print(f"- 损失: {test_loss:.4f}")
+    print(f"- Top-1准确率: {test_acc:.4f} (通过PyTorch计算)")
+    print(f"- Top-5准确率: {test_top5_acc:.4f}")
+    print(f"- 准确率: {test_accuracy:.4f} (通过sklearn计算)")
+    print(f"- 精确率: {test_precision_macro:.4f} (macro), {test_precision_weighted:.4f} (weighted)")
+    print(f"- 召回率: {test_recall_macro:.4f} (macro), {test_recall_weighted:.4f} (weighted)")
+    print(f"- F1分数: {test_f1_macro:.4f} (macro), {test_f1_weighted:.4f} (weighted)")
     
-    print(f"测试集结果 - 损失: {test_loss:.4f}, 准确率: {test_acc:.4f}")
-    
+    # 打印详细的分类报告
+    print("\n分类报告:")
+    target_names = class_names if class_names is not None else [f"类别 {i}" for i in range(args.num_classes)]
+    print(classification_report(all_labels, all_preds, target_names=target_names, digits=4))
+
+    # 保存所有指标到CSV
+    metrics_dict = {
+        'metric': ['accuracy', 'top5_accuracy', 'precision_macro', 'precision_weighted', 'recall_macro', 
+                   'recall_weighted', 'f1_macro', 'f1_weighted', 'loss'],
+        'value': [test_accuracy, test_top5_acc.item(), test_precision_macro, test_precision_weighted, 
+                  test_recall_macro, test_recall_weighted, test_f1_macro, test_f1_weighted, test_loss]
+    }
+
+
+    metrics_df = pd.DataFrame(metrics_dict)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    metrics_path = os.path.join('results', f'test_metrics_{timestamp}.csv')
+    metrics_df.to_csv(metrics_path, index=False)
+    print(f"测试指标已保存至: {metrics_path}")
+
     # 绘制ROC曲线和计算AUC
     if len(set(all_labels)) > 1:  # 确保有多个类别
         # 获取类别名称（如果有）

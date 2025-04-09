@@ -23,6 +23,8 @@ import seaborn as sns
 import argparse
 import random
 import datetime
+from sklearn.metrics import precision_score, recall_score, f1_score
+import torch.nn as nn
 # 设置matplotlib中文字体
 import matplotlib
 matplotlib.rcParams['font.sans-serif'] = ['SimHei']  # 指定默认字体为黑体
@@ -118,6 +120,11 @@ def main():
     all_preds = []
     all_labels = []
     all_probs = []
+    test_loss = 0.0
+    test_correct = 0
+
+    # 定义损失函数
+    criterion = nn.CrossEntropyLoss()
     
     with torch.no_grad():
         with tqdm(test_loader, desc="测试进度") as pbar:
@@ -129,22 +136,64 @@ def main():
                 with torch.amp.autocast(device.type, enabled=True):
                     outputs = model(images)
                 
+                # 计算损失
+                loss = criterion(outputs, labels)
+                test_loss += loss.item() * images.size(0)
+                
                 # 获取预测结果
                 _, predictions = torch.max(outputs, 1)
                 probs = F.softmax(outputs, dim=1)
+                
+                # 计算正确预测数量
+                test_correct += torch.sum(predictions == labels.data)
                 
                 # 添加到列表
                 all_preds.extend(predictions.cpu().numpy())
                 all_labels.extend(labels.cpu().numpy())
                 all_probs.extend(probs.cpu().numpy())
     
-    # 计算准确率和其他指标
-    accuracy = accuracy_score(all_labels, all_preds)
-    class_names = test_dataset.classes
+    # 计算平均损失和准确率
+    test_loss = test_loss / len(test_loader.dataset)
+    test_acc = test_correct.double() / len(test_loader.dataset)
+    
+    # 计算各项性能指标
+    test_accuracy = accuracy_score(all_labels, all_preds)           # 整体准确率
+    # 对于多分类，使用macro和weighted平均
+    test_precision_macro = precision_score(all_labels, all_preds, average='macro')
+    test_precision_weighted = precision_score(all_labels, all_preds, average='weighted')
+    test_recall_macro = recall_score(all_labels, all_preds, average='macro')
+    test_recall_weighted = recall_score(all_labels, all_preds, average='weighted')
+    test_f1_macro = f1_score(all_labels, all_preds, average='macro')
+    test_f1_weighted = f1_score(all_labels, all_preds, average='weighted')
     
     # 打印结果
     print("\n测试结果:")
-    print(f"总体准确率: {accuracy:.4f} ({sum(np.array(all_preds) == np.array(all_labels))}/{len(all_labels)})")
+    print(f"- 损失: {test_loss:.4f}")
+    print(f"- Top-1准确率: {test_acc:.4f} (通过PyTorch计算)")
+    print(f"- 准确率: {test_accuracy:.4f} (通过sklearn计算)")
+    print(f"- 精确率: {test_precision_macro:.4f} (macro), {test_precision_weighted:.4f} (weighted)")
+    print(f"- 召回率: {test_recall_macro:.4f} (macro), {test_recall_weighted:.4f} (weighted)")
+    print(f"- F1分数: {test_f1_macro:.4f} (macro), {test_f1_weighted:.4f} (weighted)")
+    
+    # 保存所有指标到CSV
+    metrics_dict = {
+        'metric': ['loss', 'accuracy_pytorch', 'accuracy_sklearn', 'precision_macro', 'precision_weighted', 
+                   'recall_macro', 'recall_weighted', 'f1_macro', 'f1_weighted'],
+        'value': [test_loss, test_acc.item(), test_accuracy, test_precision_macro, test_precision_weighted, 
+                  test_recall_macro, test_recall_weighted, test_f1_macro, test_f1_weighted]
+    }
+    
+    # 创建时间戳
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    # 确保结果目录存在
+    os.makedirs('results', exist_ok=True)
+    
+    # 保存指标到CSV
+    metrics_df = pd.DataFrame(metrics_dict)
+    metrics_path = os.path.join('results', f'test_metrics_{timestamp}.csv')
+    metrics_df.to_csv(metrics_path, index=False)
+    print(f"测试指标已保存至: {metrics_path}")
     
     # 详细的分类报告
     print("\n分类报告:")
