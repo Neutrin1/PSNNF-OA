@@ -45,6 +45,7 @@ def parse_args():
                         help='数据加载线程数')
     parser.add_argument('--model_type', type=str, default='efficientnet-b0',
                         help='模型类型')
+    
     return parser.parse_args()
 
 
@@ -112,7 +113,7 @@ def main():
     
     test_dataset = TestDataset(data_dir=args.data_dir, transform=test_transforms)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
-    
+    class_names = test_dataset.classes
     print(f"测试数据集大小: {len(test_dataset)} 图像")
     print(f"类别数量: {len(test_dataset.classes)}")
     
@@ -155,7 +156,7 @@ def main():
     # 计算平均损失和准确率
     test_loss = test_loss / len(test_loader.dataset)
     test_acc = test_correct.double() / len(test_loader.dataset)
-    
+
     # 计算各项性能指标
     test_accuracy = accuracy_score(all_labels, all_preds)           # 整体准确率
     # 对于多分类，使用macro和weighted平均
@@ -206,7 +207,7 @@ def main():
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=class_names, yticklabels=class_names)
     plt.xlabel('预测标签')
     plt.ylabel('真实标签')
-    plt.title(f'混淆矩阵 (准确率: {accuracy:.4f})')
+    plt.title(f'混淆矩阵 (准确率: {test_accuracy:.4f})')
     plt.tight_layout()
     plt.savefig('confusion_matrix.png')
     print("混淆矩阵已保存到 confusion_matrix.png")
