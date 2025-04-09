@@ -35,17 +35,15 @@ from .datalist import ImageDataset
 def get_train_transforms(input_size=(224, 224), mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]):
     """获取训练数据增强转换"""
     return transforms.Compose([
-    transforms.ToPILImage(),
-    transforms.RandomResizedCrop(224),
-    transforms.RandomHorizontalFlip(),
-    transforms.RandomApply([transforms.GaussianBlur(kernel_size=5)], p=0.1),   # 随机高斯模糊
-    transforms.RandomAutocontrast(p=0.2),         # 随机自动对比度调整
-    transforms.RandomEqualize(p=0.2),             # 随机均衡化
-    transforms.RandomAdjustSharpness(1.5, p=0.3), # 随机调整锐度
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    transforms.RandomErasing(p=0.2)               # 随机擦除（应用于张量）
-])
+        transforms.ToPILImage(),
+        transforms.RandomResizedCrop(input_size[0], scale=(0.8, 1.0)),  # 减小裁剪范围
+        transforms.RandomHorizontalFlip(p=0.3),    # 降低翻转概率
+        transforms.RandomApply([transforms.GaussianBlur(kernel_size=3)], p=0.05),  # 降低模糊概率和核大小
+        transforms.RandomAutocontrast(p=0.1),      # 降低对比度调整概率
+        transforms.ToTensor(),
+        transforms.Normalize(mean=mean, std=std),  # 使用传入的参数
+        transforms.RandomErasing(p=0.1, scale=(0.02, 0.1))  # 降低擦除概率和面积
+    ])
 
 def get_val_transforms(input_size=(224, 224), mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]):
     """获取验证和测试数据转换"""

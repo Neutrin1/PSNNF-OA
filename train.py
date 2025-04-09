@@ -24,7 +24,9 @@ from tqdm import tqdm
 import argparse
 from datetime import datetime
 from torch.amp import autocast, GradScaler
-
+from sklearn.metrics import roc_curve, auc, roc_auc_score
+from sklearn.preprocessing import label_binarize
+from itertools import cycle
 
 # 导入自定义模块
 from data.data_interface import ImageDataset, DInterface
@@ -308,17 +310,24 @@ def visualize_training_history(history):
 
 # 在visualize_training_history函数后添加保存CSV的函数
 
-def save_training_history_to_csv(history, filename=None):
+def save_training_history_to_csv(history, filename=None, save_dir='results'):
     """
     将训练历史保存为CSV文件
     
     参数:
         history: 包含训练历史的字典
         filename: 保存的文件名（如果为None，则使用时间戳生成）
+        save_dir: 保存文件的目录
     """
+    # 确保保存目录存在
+    os.makedirs(save_dir, exist_ok=True)
+    
     if filename is None:
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         filename = f'training_history_{timestamp}.csv'
+    
+    # 创建完整的文件路径
+    filepath = os.path.join(save_dir, filename)
     
     # 创建DataFrame
     df = pd.DataFrame({
@@ -334,10 +343,93 @@ def save_training_history_to_csv(history, filename=None):
         df['learning_rate'] = history['learning_rate']
     
     # 保存为CSV文件
-    df.to_csv(filename, index=False)
-    print(f"训练历史数据已保存到: {filename}")
+    df.to_csv(filepath, index=False)
+    print(f"训练历史数据已保存到: {filepath}")
 
  
+def plot_roc_curve(y_true, y_pred_proba, class_names=None, save_dir='.'):
+    """
+    绘制ROC曲线并计算AUC
+    
+    参数:
+        y_true: 真实标签
+        y_pred_proba: 预测概率
+        class_names: 类别名称列表
+        save_dir: 保存图像的目录
+    
+    返回:
+        auc_values: 每个类别的AUC值字典
+    """
+    # 确保保存目录存在
+    os.makedirs(save_dir, exist_ok=True)
+    
+    # 转换为numpy数组
+    y_true = np.array(y_true)
+    y_pred_proba = np.array(y_pred_proba)
+    
+    n_classes = y_pred_proba.shape[1]
+    
+    # 如果没有提供类别名称，则使用数字作为类别名称
+    if class_names is None:
+        class_names = [f'类别 {i}' for i in range(n_classes)]
+    
+    # 二值化标签（one-hot编码）
+    y_true_bin = label_binarize(y_true, classes=range(n_classes))
+    
+    # 计算ROC曲线和AUC
+    fpr = dict()
+    tpr = dict()
+    roc_auc = dict()
+    
+    plt.figure(figsize=(10, 8))
+    
+    colors = cycle(['aqua', 'darkorange', 'cornflowerblue', 'red', 'green', 'purple', 'brown', 'pink', 'gray', 'olive'])
+    
+    # 对每个类别计算ROC曲线和AUC
+    for i, color, class_name in zip(range(n_classes), colors, class_names):
+        if i < 10:  # 只显示前10个类别，避免图像过于拥挤
+            fpr[i], tpr[i], _ = roc_curve(y_true_bin[:, i], y_pred_proba[:, i])
+            roc_auc[i] = auc(fpr[i], tpr[i])
+            
+            plt.plot(fpr[i], tpr[i], color=color, lw=2,
+                     label=f'{class_name} (AUC = {roc_auc[i]:.2f})')
+    
+    # 计算宏平均AUC（所有类别的平均）
+    if n_classes > 2:
+        try:
+            macro_auc = roc_auc_score(y_true_bin, y_pred_proba, average='macro')
+            print(f"宏平均AUC: {macro_auc:.4f}")
+        except:
+            print("计算宏平均AUC出错，可能是某些类别缺少正样本或负样本")
+            macro_auc = np.mean(list(roc_auc.values()))
+    else:
+        macro_auc = list(roc_auc.values())[0]
+    
+    # 绘制对角线
+    plt.plot([0, 1], [0, 1], 'k--', lw=2)
+    
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('假阳性率 (False Positive Rate)')
+    plt.ylabel('真阳性率 (True Positive Rate)')
+    plt.title(f'ROC曲线 (宏平均AUC = {macro_auc:.4f})')
+    plt.legend(loc="lower right")
+    
+    # 保存图像
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    save_path = os.path.join(save_dir, f'roc_curve_{timestamp}.png')
+    plt.savefig(save_path)
+    print(f"ROC曲线已保存至: {save_path}")
+    plt.show()
+    
+    # 返回每个类别的AUC值
+    auc_values = {class_names[i]: roc_auc[i] for i in roc_auc}
+    auc_values['宏平均'] = macro_auc
+    
+    return auc_values
+
+
+
 
 
 def main():
@@ -470,23 +562,53 @@ def main():
     test_loss = 0.0
     test_correct = 0
     
+    all_labels = []
+    all_probs = []
+    
     with torch.no_grad():
         for inputs, labels in tqdm(test_loader, desc="测试评估"):
             inputs = inputs.to(device)
             labels = labels.to(device)
             
             outputs = model(inputs)
+            probs = F.softmax(outputs, dim=1)
             _, preds = torch.max(outputs, 1)
-
+    
             loss = criterion(outputs, labels)
             
             test_loss += loss.item() * inputs.size(0)
             test_correct += torch.sum(preds == labels.data)
+            
+            # 收集标签和预测概率
+            all_labels.extend(labels.cpu().numpy())
+            all_probs.extend(probs.cpu().numpy())
     
     test_loss = test_loss / len(test_loader.dataset)
     test_acc = test_correct.double() / len(test_loader.dataset)
     
     print(f"测试集结果 - 损失: {test_loss:.4f}, 准确率: {test_acc:.4f}")
+    
+    # 绘制ROC曲线和计算AUC
+    if len(set(all_labels)) > 1:  # 确保有多个类别
+        # 获取类别名称（如果有）
+        class_names = None
+        if hasattr(data_interface, 'class_names'):
+            class_names = data_interface.class_names
+        elif hasattr(test_loader.dataset, 'classes'):
+            class_names = test_loader.dataset.classes
+        
+        auc_values = plot_roc_curve(all_labels, all_probs, class_names=class_names, save_dir='results')
+        
+        # 保存AUC值到CSV
+        auc_df = pd.DataFrame({
+            'class': list(auc_values.keys()),
+            'auc': list(auc_values.values())
+        })
+        
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        auc_path = os.path.join('results', f'auc_values_{timestamp}.csv')
+        auc_df.to_csv(auc_path, index=False)
+        print(f"AUC值已保存至: {auc_path}")
 
 if __name__ == "__main__":
     main()
