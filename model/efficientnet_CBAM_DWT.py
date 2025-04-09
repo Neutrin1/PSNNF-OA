@@ -12,6 +12,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 # 导入CBAM模块
 from .cbam import CBAM
+from .cbam_dwt import CBAM_Wavelet
 # EfficientNet参数
 from .efficientnet_utils import (
     round_filters,
@@ -93,7 +94,7 @@ class MBConvBlock(nn.Module):
             # self._se_expand = Conv2d(in_channels=num_squeezed_channels, out_channels=oup, kernel_size=1)
 
         # CBAM模块
-            self.cbam = CBAM(oup, ratio=16, kernel_size=7)  # ratio: 通道注意力中的缩减比例
+            self.cbam = CBAM_Wavelet(oup, ratio=16, kernel_size=7)  # ratio: 通道注意力中的缩减比例
 
         # 逐点卷积阶段
         final_oup = self._block_args.output_filters
