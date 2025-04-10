@@ -28,15 +28,16 @@ from .efficientnet_utils import (
 
 
 """
-EfficientNet模型的实现
+EfficientNet-CBMA模型的实现
 """
 VALID_MODELS = (
-    'efficientnet-b0', 'efficientnet-b1', 'efficientnet-b2', 'efficientnet-b3',
-    'efficientnet-b4', 'efficientnet-b5', 'efficientnet-b6', 'efficientnet-b7',
-    'efficientnet-b8',
+    'efficientnet-cbam-b0', 'efficientnet-cbam-b1', 'efficientnet-cbam-b2', 'efficientnet-cbam-b3',
+    'efficientnet-cbam-b4', 'efficientnet-cbam-b5', 'efficientnet-cbam-b6', 'efficientnet-cbam-b7',
+    'efficientnet-cbam-b8',
 
     # Support the construction of 'efficientnet-l2' without pretrained weights
-    'efficientnet-l2'
+    'efficientnet-cbam-l2',
+    
 )
 
 

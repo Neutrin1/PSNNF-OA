@@ -33,7 +33,8 @@ from .unet import UNet
 from .efficientnet import EfficientNet
 from .resnet import resnet18, resnet50, resnet34, resnet101, resnet152
 from .efficientnet_CBAM import EfficientNet_CBAM
-
+# efficientnetv2
+from .effnetv2 import EffNetV2, effnetv2_s, effnetv2_m, effnetv2_l, effnetv2_xl
 """
     创建模型接口
 """
@@ -105,6 +106,12 @@ class MInterface:
             )
             print(f"使用{self.model_type}模型")
 
+        elif self.model_type.startswith('efficientnet-cbam-'):
+            # Extract model version from the model_type string
+            version = self.model_type.replace('efficientnet-cbam-', '')
+            model = EfficientNet_CBAM.from_name(f'efficientnet-cbam-{version}', num_classes=self.num_classes)
+            print(f"使用 {self.model_type} 模型，类别数: {self.num_classes}")
+
         elif self.model_type.startswith('efficientnet-'):
         # 直接使用 self.model_type 作为模型名称
             model = EfficientNet.from_name(self.model_type, num_classes=self.num_classes)
@@ -138,9 +145,19 @@ class MInterface:
             model = resnet152(num_classes=self.num_classes)
             print(f"使用 {self.model_type} 模型")
         
-        elif self.model_type == 'efficientnet_cbam':
-            model = EfficientNet_CBAM.from_name('efficientnet-b0', num_classes=self.num_classes)
-            print(f"使用 {self.model_type} 模型，类别数: {self.num_classes}")
+        elif self.model_type == 'effnetv2_s':
+            model = effnetv2_s(num_classes=self.num_classes)
+            print(f"使用 {self.model_type} 模型")
+        elif self.model_type == 'effnetv2_m':
+            model = effnetv2_m(num_classes=self.num_classes)
+            print(f"使用 {self.model_type} 模型")
+        elif self.model_type == 'effnetv2_l':
+            model = effnetv2_l(num_classes=self.num_classes)
+            print(f"使用 {self.model_type} 模型")
+        elif self.model_type == 'effnetv2_xl':
+            model = effnetv2_xl(num_classes=self.num_classes)
+            print(f"使用 {self.model_type} 模型")
+
 
         else :
             raise ValueError(f"不支持的模型类型: {self.model_type}")

@@ -35,9 +35,9 @@ from model.model_interface import MInterface
 
 def parse_args():
     parser = argparse.ArgumentParser(description='测试模型性能')
-    parser.add_argument('--checkpoint', type=str, default='D:\\MyRepository\\MyProject\\CVPR\\Neural_Network\\checkpoints\\efficientnet-0.pth', 
+    parser.add_argument('--checkpoint', type=str, default='D:\\Workplace\PreTraining\\result\\efficientnet-b0_epoch200_bs32\\effb0-final_model.pth', 
                         help='模型检查点路径')
-    parser.add_argument('--data_dir', type=str,  default='E:\\Dataset\\mini-imagenet\\Mini-ImageNet-Dataset\\test',
+    parser.add_argument('--data_dir', type=str,  default='D:\\Dataset\\mini-imagenet\\Mini-ImageNet-Dataset\\test',
                         help='测试数据目录')
     parser.add_argument('--batch_size', type=int, default=32,
                         help='测试批量大小')
@@ -190,12 +190,19 @@ def main():
     # 确保结果目录存在
     os.makedirs('results', exist_ok=True)
     
-    # 保存指标到CSV
-    metrics_df = pd.DataFrame(metrics_dict)
-    metrics_path = os.path.join('results', f'test_metrics_{timestamp}.csv')
-    metrics_df.to_csv(metrics_path, index=False)
-    print(f"测试指标已保存至: {metrics_path}")
+    # 从checkpoint路径中提取模型名称
+    model_name = os.path.basename(args.checkpoint).split('.')[0]
     
+    # 保存指标到TXT文件
+    metrics_path = os.path.join('results', f'{model_name}_{timestamp}_metrics.txt')
+    with open(metrics_path, 'w') as f:
+        f.write(f"测试结果 - {timestamp}\n")
+        f.write(f"模型: {args.model_type}\n")
+        f.write(f"Checkpoint: {args.checkpoint}\n\n")
+        for metric, value in zip(metrics_dict['metric'], metrics_dict['value']):
+            f.write(f"{metric}: {value:.6f}\n")
+    
+    print(f"测试指标已保存至: {metrics_path}")
     # 详细的分类报告
     print("\n分类报告:")
     report = classification_report(all_labels, all_preds, target_names=class_names)

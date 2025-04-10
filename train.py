@@ -30,7 +30,6 @@ from itertools import cycle
 from sklearn.metrics import precision_score, recall_score, f1_score, classification_report, accuracy_score
 # 导入自定义模块
 from data.data_interface import ImageDataset, DInterface
-
 from model.model_interface import MInterface, get_available_wavelets
 plt.rcParams['font.sans-serif'] = ['SimHei']  # 用来正常显示中文标签
 plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示负号
@@ -54,7 +53,8 @@ def parse_args():
     parser.add_argument('--model_type', type=str, default='cnn',
                         choices=['cnn', 'waveletcnn', 'efficientnet-b0', 'mobilenetv2_100','unet', 'efficientnet-b0', 'efficientnet-b1', 'efficientnet-b2', 'efficientnet-b3',
                         'efficientnet-b4', 'efficientnet-b5', 'efficientnet-b6', 'efficientnet-b7','efficientnet-b8','vgg11_bn','vgg13_bn','vgg16_bn','vgg19_bn','resnet18',
-                        'resnet34','resnet50','resnet101','resnet152','GoogleNet'],
+                        'resnet34','resnet50','resnet101','resnet152','GoogleNet', 'efficientnet-cbam-b0', 'efficientnet-cbam-b1', 'efficientnet-cbam-b2', 'efficientnet-cbam-b3',
+                        'efficientnet-cbam-b4', 'efficientnet-cbam-b5', 'efficientnet-cbam-b6', 'efficientnet-cbam-b7','efficientnet-cbam-b8','effnetv2_s', 'effnetv2_m', 'effnetv2_l', 'effnetv2_xl'],
                         help='模型类型')
     parser.add_argument('--num_classes', type=int, default=100,
                         help='分类类别数')
@@ -260,12 +260,13 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
     
     return model, history
 
-def visualize_training_history(history):
+def visualize_training_history(history, model_type):
     """
     可视化训练历史
     
     参数:
         history: 包含训练历史的字典
+        model_type: 模型类型名称
     """
     plt.figure(figsize=(12, 4))
     
@@ -290,7 +291,7 @@ def visualize_training_history(history):
     plt.tight_layout()
     # 使用时间戳创建唯一的文件名
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    save_path = f'training_history_{timestamp}.png'
+    save_path = f'{model_type}_训练曲线_{timestamp}.png'
     plt.savefig(save_path)
     print(f"训练历史图表已保存至: {save_path}")
     plt.show()
@@ -303,14 +304,13 @@ def visualize_training_history(history):
         plt.title('学习率变化曲线')
         plt.yscale('log')  # 使用对数刻度更清晰地显示变化
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        lr_save_path = f'learning_rate_{timestamp}.png'
+        lr_save_path = f'{model_type}_学习率曲线_{timestamp}.png'
         plt.savefig(lr_save_path)
         print(f"学习率变化曲线已保存至: {lr_save_path}")
         plt.show()
 
-# 在visualize_training_history函数后添加保存CSV的函数
 
-def save_training_history_to_csv(history, filename=None, save_dir='results'):
+def save_training_history_to_csv(history, model_type ,filename=None, save_dir='results'):
     """
     将训练历史保存为CSV文件
     
@@ -324,7 +324,7 @@ def save_training_history_to_csv(history, filename=None, save_dir='results'):
     
     if filename is None:
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f'training_history_{timestamp}.csv'
+        filename = f'{model_type}_训练历史数据_{timestamp}.csv'
     
     # 创建完整的文件路径
     filepath = os.path.join(save_dir, filename)
@@ -347,13 +347,14 @@ def save_training_history_to_csv(history, filename=None, save_dir='results'):
     print(f"训练历史数据已保存到: {filepath}")
 
  
-def plot_roc_curve(y_true, y_pred_proba, class_names=None, save_dir='.'):
+def plot_roc_curve(y_true, y_pred_proba, model_type, class_names=None, save_dir='.'):
     """
     绘制ROC曲线并计算AUC
     
     参数:
         y_true: 真实标签
         y_pred_proba: 预测概率
+        model_type: 模型类型名称
         class_names: 类别名称列表
         save_dir: 保存图像的目录
     
@@ -415,9 +416,9 @@ def plot_roc_curve(y_true, y_pred_proba, class_names=None, save_dir='.'):
     plt.title(f'ROC曲线 (宏平均AUC = {macro_auc:.4f})')
     plt.legend(loc="lower right")
     
-    # 保存图像
+    # 保存图像 - 修改为"模型+数据类型+时间戳"格式
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    save_path = os.path.join(save_dir, f'roc_curve_{timestamp}.png')
+    save_path = os.path.join(save_dir, f'{model_type}_ROC曲线_{timestamp}.png')
     plt.savefig(save_path)
     print(f"ROC曲线已保存至: {save_path}")
     plt.show()
@@ -497,6 +498,20 @@ def main():
     if len(str(model).split('\n')) > 10:
         print(f"  ... (完整架构太长，仅显示部分)")
     
+    # 保存模型信息到以模型名称命名的txt文件
+    os.makedirs('model_info', exist_ok=True)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    model_info_path = os.path.join('model_info', f'{args.model_type}_{timestamp}.txt')
+    
+    with open(model_info_path, 'w', encoding='utf-8') as f:
+        f.write(f"模型名称: {args.model_type}\n")
+        f.write(f"总参数量: {total_params:,}\n")
+        f.write(f"可训练参数量: {trainable_params:,}\n")
+        f.write(f"\n模型架构:\n")
+        f.write(str(model))
+    
+    print(f"模型信息已保存至: {model_info_path}")
+    
     # 定义损失函数和优化器
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
@@ -547,12 +562,15 @@ def main():
     )
     
     # 可视化训练历史
-    visualize_training_history(history)
+    visualize_training_history(history,args.model_type)
 
     # 保存训练历史到CSV文件
-    save_training_history_to_csv(history)
+    save_training_history_to_csv(history,args.model_type)
+    
     # 保存最终模型
-    final_model_path = os.path.join(args.save_dir, 'final_model.pth')
+    # 保存最终模型（添加时间戳以便区分）
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    final_model_path = os.path.join(args.save_dir, f'final_model_{args.model_type}_{timestamp}.pth')
     torch.save(model.state_dict(), final_model_path)
     print(f"最终模型已保存到 {final_model_path}")
     
@@ -611,6 +629,12 @@ def main():
     test_f1_macro = f1_score(all_labels, all_preds, average='macro')
     test_f1_weighted = f1_score(all_labels, all_preds, average='weighted')
 
+    class_names = None
+    if hasattr(data_interface, 'class_names'):
+        class_names = data_interface.class_names
+    elif hasattr(test_loader.dataset, 'classes'):
+        class_names = test_loader.dataset.classes
+
     # 打印性能指标
     print(f"测试集结果:")
     print(f"- 损失: {test_loss:.4f}")
@@ -624,7 +648,27 @@ def main():
     # 打印详细的分类报告
     print("\n分类报告:")
     target_names = class_names if class_names is not None else [f"类别 {i}" for i in range(args.num_classes)]
-    print(classification_report(all_labels, all_preds, target_names=target_names, digits=4))
+    classification_rep = classification_report(all_labels, all_preds, target_names=target_names, digits=4)
+    print(classification_rep)
+    
+    # 将性能指标保存到时间戳命名的txt文件中
+    os.makedirs('results', exist_ok=True)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    report_path = os.path.join('results', f'{args.model_type}_测试报告_{timestamp}.txt')
+
+    with open(report_path, 'w', encoding='utf-8') as f:
+        f.write(f"测试集结果:\n")
+        f.write(f"- 损失: {test_loss:.4f}\n")
+        f.write(f"- Top-1准确率: {test_acc:.4f} (通过PyTorch计算)\n")
+        f.write(f"- Top-5准确率: {test_top5_acc:.4f}\n")
+        f.write(f"- 准确率: {test_accuracy:.4f} (通过sklearn计算)\n")
+        f.write(f"- 精确率: {test_precision_macro:.4f} (macro), {test_precision_weighted:.4f} (weighted)\n")
+        f.write(f"- 召回率: {test_recall_macro:.4f} (macro), {test_recall_weighted:.4f} (weighted)\n")
+        f.write(f"- F1分数: {test_f1_macro:.4f} (macro), {test_f1_weighted:.4f} (weighted)\n\n")
+        f.write("分类报告:\n")
+        f.write(classification_rep)
+        
+    print(f"测试报告已保存至: {report_path}")
 
     # 保存所有指标到CSV
     metrics_dict = {
@@ -637,7 +681,7 @@ def main():
 
     metrics_df = pd.DataFrame(metrics_dict)
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    metrics_path = os.path.join('results', f'test_metrics_{timestamp}.csv')
+    metrics_path = os.path.join('results', f'{args.model_type}_测试指标_{timestamp}.csv')
     metrics_df.to_csv(metrics_path, index=False)
     print(f"测试指标已保存至: {metrics_path}")
 
@@ -650,7 +694,7 @@ def main():
         elif hasattr(test_loader.dataset, 'classes'):
             class_names = test_loader.dataset.classes
         
-        auc_values = plot_roc_curve(all_labels, all_probs, class_names=class_names, save_dir='results')
+        auc_values = plot_roc_curve(all_labels, all_probs, args.model_type,class_names=class_names, save_dir='results')
         
         # 保存AUC值到CSV
         auc_df = pd.DataFrame({
@@ -658,8 +702,9 @@ def main():
             'auc': list(auc_values.values())
         })
         
+        # 修改AUC值保存的文件名
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        auc_path = os.path.join('results', f'auc_values_{timestamp}.csv')
+        auc_path = os.path.join('results', f'{args.model_type}_AUC值_{timestamp}.csv')
         auc_df.to_csv(auc_path, index=False)
         print(f"AUC值已保存至: {auc_path}")
 

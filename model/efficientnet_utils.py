@@ -475,6 +475,17 @@ def efficientnet_params(model_name):
         'efficientnet-b7': (2.0, 3.1, 600, 0.5),
         'efficientnet-b8': (2.2, 3.6, 672, 0.5),
         'efficientnet-l2': (4.3, 5.3, 800, 0.5),
+        
+        # CBAM variants - same parameters as original models
+        'efficientnet-cbam-b0': (1.0, 1.0, 224, 0.2),
+        'efficientnet-cbam-b1': (1.0, 1.1, 240, 0.2),
+        'efficientnet-cbam-b2': (1.1, 1.2, 260, 0.3),
+        'efficientnet-cbam-b3': (1.2, 1.4, 300, 0.3),
+        'efficientnet-cbam-b4': (1.4, 1.8, 380, 0.4),
+        'efficientnet-cbam-b5': (1.6, 2.2, 456, 0.4),
+        'efficientnet-cbam-b6': (1.8, 2.6, 528, 0.5),
+        'efficientnet-cbam-b7': (2.0, 3.1, 600, 0.5),
+        'efficientnet-cbam-b8': (2.2, 3.6, 672, 0.5),
     }
     return params_dict[model_name]
 
