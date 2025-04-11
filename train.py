@@ -229,12 +229,8 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
             epoch_acc = running_corrects.double() / len(dataloader.dataset)
             
             print(f'{phase} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
-            # 更新学习率
-            if not isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
-                scheduler.step()
-            else:
-                # ReduceLROnPlateau需要验证损失
-                scheduler.step(epoch_loss)  # 只有在使用ReduceLROnPlateau时才传入损失
+
+            
 
             # 保存训练记录
             if phase == 'train':
@@ -244,15 +240,22 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
                 history['val_loss'].append(epoch_loss)
                 history['val_acc'].append(epoch_acc.item())
                 
-                # 使用学习率调度器
-                scheduler.step(epoch_loss)
+                 # 仅在验证阶段结束后调用一次学习率调度器
+                if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                    scheduler.step(epoch_loss)  # ReduceLROnPlateau需要监控值
+                else:
+                    scheduler.step()  # 其他调度器无需参数
                 
+
+
                 # 只保存最佳模型
                 if epoch_acc > best_acc:
                     best_acc = epoch_acc
                     torch.save(model.state_dict(), best_model_path)
                     print(f"发现更好的模型，准确率: {epoch_acc:.4f}")
     
+
+
     # 训练结束后，加载最佳模型权重
     if os.path.exists(best_model_path):
         model.load_state_dict(torch.load(best_model_path))
@@ -532,6 +535,7 @@ def main():
             patience=5
         )
         print("使用ReduceLROnPlateau学习率调度器")
+
     elif args.lr_scheduler == 'step':
         scheduler = torch.optim.lr_scheduler.StepLR(
             optimizer,
@@ -545,7 +549,7 @@ def main():
             milestones=[30, 60, 90],
             gamma=0.1
         )
-    print("使用MultiStepLR学习率调度器，在第30/60/90轮降低学习率")
+        print("使用MultiStepLR学习率调度器，在第30/60/90轮降低学习率")
     
     # 训练模型
     print(f"\n开始训练模型...")
