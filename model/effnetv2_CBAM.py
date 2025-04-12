@@ -167,7 +167,7 @@ class EffNetV2_CBAM(nn.Module):
                 m.bias.data.zero_()
 
 
-def effnetv2_s(**kwargs):
+def effnetv2_cbam_s(**kwargs):
     """
     Constructs a EfficientNetV2-S model
     """
@@ -183,7 +183,7 @@ def effnetv2_s(**kwargs):
     return EffNetV2_CBAM(cfgs, **kwargs)
 
 
-def effnetv2_m(**kwargs):
+def effnetv2_cbam_m(**kwargs):
     """
     Constructs a EfficientNetV2-M model
     """
@@ -200,7 +200,7 @@ def effnetv2_m(**kwargs):
     return EffNetV2_CBAM(cfgs, **kwargs)
 
 
-def effnetv2_l(**kwargs):
+def effnetv2_cbam_l(**kwargs):
     """
     Constructs a EfficientNetV2-L model
     """
@@ -217,7 +217,7 @@ def effnetv2_l(**kwargs):
     return EffNetV2_CBAM(cfgs, **kwargs)
 
 
-def effnetv2_xl(**kwargs):
+def effnetv2_cbam_xl(**kwargs):
     """
     Constructs a EfficientNetV2-XL model
     """

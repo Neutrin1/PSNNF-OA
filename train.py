@@ -54,7 +54,8 @@ def parse_args():
                         choices=['cnn', 'waveletcnn', 'efficientnet-b0', 'mobilenetv2_100','unet', 'efficientnet-b0', 'efficientnet-b1', 'efficientnet-b2', 'efficientnet-b3',
                         'efficientnet-b4', 'efficientnet-b5', 'efficientnet-b6', 'efficientnet-b7','efficientnet-b8','vgg11_bn','vgg13_bn','vgg16_bn','vgg19_bn','resnet18',
                         'resnet34','resnet50','resnet101','resnet152','GoogleNet', 'efficientnet-cbam-b0', 'efficientnet-cbam-b1', 'efficientnet-cbam-b2', 'efficientnet-cbam-b3',
-                        'efficientnet-cbam-b4', 'efficientnet-cbam-b5', 'efficientnet-cbam-b6', 'efficientnet-cbam-b7','efficientnet-cbam-b8','effnetv2_s', 'effnetv2_m', 'effnetv2_l', 'effnetv2_xl'],
+                        'efficientnet-cbam-b4', 'efficientnet-cbam-b5', 'efficientnet-cbam-b6', 'efficientnet-cbam-b7','efficientnet-cbam-b8','effnetv2_s', 'effnetv2_m', 'effnetv2_l', 'effnetv2_xl',
+                        'effnetv2_cbam_s', 'effnetv2_cbam_m', 'effnetv2_cbam_l', 'effnetv2_cbam_xl','effnetv2_dwt_cbam_s', 'effnetv2_dwt_cbam_m', 'effnetv2_dwt_cbam_l', 'effnetv2_dwt_cbam_xl'],
                         help='模型类型')
     parser.add_argument('--num_classes', type=int, default=100,
                         help='分类类别数')

@@ -95,23 +95,23 @@ class Waveletattspace(nn.Module):
             nn.Sigmoid()
         )
 
-        def forward(self, x):
-            """
-            x: B, H*W, C
-            """
-            xori = x
-            B, C, H, W= x.shape
-            # H, W = self.input_resolution
-            # B, L, C = x.shape
-            # assert L == H * W, "input feature has wrong size"
-            # assert H % 2 == 0 and W % 2 == 0, f"x size ({H}*{W}) are not even."
-            x = x.view(B, H, W, C)
-            x = x.permute(0, 3, 2, 1)        
-            y = self.downsamplewavelet(x)
-            y = self.fc(y) # torch.Size([64, 256])-->torch.Size([64, 256, 1, 1])
-            # y = self.fc(y).view(B, C, 1, 1)  # torch.Size([64, 256])-->torch.Size([64, 256, 1, 1])
-            y = xori * y.expand_as(xori)       
-            return y
+    def forward(self, x):
+        """
+        x: B, H*W, C
+        """
+        xori = x
+        B, C, H, W= x.shape
+        # H, W = self.input_resolution
+        # B, L, C = x.shape
+        # assert L == H * W, "input feature has wrong size"
+        # assert H % 2 == 0 and W % 2 == 0, f"x size ({H}*{W}) are not even."
+        x = x.view(B, H, W, C)
+        x = x.permute(0, 3, 2, 1)        
+        y = self.downsamplewavelet(x)
+        y = self.fc(y) # torch.Size([64, 256])-->torch.Size([64, 256, 1, 1])
+        # y = self.fc(y).view(B, C, 1, 1)  # torch.Size([64, 256])-->torch.Size([64, 256, 1, 1])
+        y = xori * y.expand_as(xori)       
+        return y
         
         
 class CBAM_Wavelet(nn.Module):

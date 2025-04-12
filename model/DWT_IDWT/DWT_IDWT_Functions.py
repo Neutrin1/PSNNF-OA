@@ -50,12 +50,27 @@ class DWTFunction_2D(Function):
         HL = torch.matmul(H, matrix_Low_1)
         HH = torch.matmul(H, matrix_High_1)
         return LL, LH, HL, HH
+    
     @staticmethod
     def backward(ctx, grad_LL, grad_LH, grad_HL, grad_HH):
         matrix_Low_0, matrix_Low_1, matrix_High_0, matrix_High_1 = ctx.saved_variables
+        
+        # 添加类型转换代码，确保所有张量都是float32类型
+        grad_LL = grad_LL.float()
+        grad_LH = grad_LH.float()
+        grad_HL = grad_HL.float()
+        grad_HH = grad_HH.float()
+        
+        matrix_Low_0 = matrix_Low_0.float()
+        matrix_Low_1 = matrix_Low_1.float()
+        matrix_High_0 = matrix_High_0.float()
+        matrix_High_1 = matrix_High_1.float()
+        
+        # 原来的计算代码，现在使用转换后的float32类型张量
         grad_L = torch.add(torch.matmul(grad_LL, matrix_Low_1.t()), torch.matmul(grad_LH, matrix_High_1.t()))
         grad_H = torch.add(torch.matmul(grad_HL, matrix_Low_1.t()), torch.matmul(grad_HH, matrix_High_1.t()))
         grad_input = torch.add(torch.matmul(matrix_Low_0.t(), grad_L), torch.matmul(matrix_High_0.t(), grad_H))
+        
         return grad_input, None, None, None, None
 
 

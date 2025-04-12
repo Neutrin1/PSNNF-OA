@@ -35,6 +35,9 @@ from .resnet import resnet18, resnet50, resnet34, resnet101, resnet152
 from .efficientnet_CBAM import EfficientNet_CBAM
 # efficientnetv2
 from .effnetv2 import EffNetV2, effnetv2_s, effnetv2_m, effnetv2_l, effnetv2_xl
+from .effnetv2_CBAM import EffNetV2_CBAM, effnetv2_cbam_s, effnetv2_cbam_m, effnetv2_cbam_l, effnetv2_cbam_xl
+from .effnetv2_DWT_CBAM import EffNetV2_DWT_CBAM, effnetv2_dwt_cbam_s, effnetv2_dwt_cbam_m, effnetv2_dwt_cbam_l, effnetv2_dwt_cbam_xl
+
 """
     创建模型接口
 """
@@ -99,6 +102,8 @@ class MInterface:
                 dropout_rate=self.dropout_rate
             )
             print(f"使用{self.model_type}模型")
+            
+        # 以下是UNet网络
         elif self.model_type == UNet:                               #Unet网络
             model = UNet(
                 in_channels=self.in_channels,
@@ -106,45 +111,41 @@ class MInterface:
             )
             print(f"使用{self.model_type}模型")
 
+        # 以下的模型是EfficientNet系列
         elif self.model_type.startswith('efficientnet-cbam-'):
             # Extract model version from the model_type string
             version = self.model_type.replace('efficientnet-cbam-', '')
             model = EfficientNet_CBAM.from_name(f'efficientnet-cbam-{version}', num_classes=self.num_classes)
             print(f"使用 {self.model_type} 模型，类别数: {self.num_classes}")
-
         elif self.model_type.startswith('efficientnet-'):
         # 直接使用 self.model_type 作为模型名称
             model = EfficientNet.from_name(self.model_type, num_classes=self.num_classes)
             print(f"使用 {self.model_type} 模型，类别数: {self.num_classes}")
             
+        # 以下的模型是ResNet系列
         elif self.model_type == 'resnet18':
             model = resnet18(num_classes=self.num_classes)
             print(f"使用{self.model_type}模型")
-
         elif self.model_type == 'resnet50':
             model = resnet18(num_classes=self.num_classes)
             print(f"使用{self.model_type}模型")
-
         elif self.model_type == 'resnet18':
             model = resnet18(num_classes=self.num_classes)
             print(f"使用 {self.model_type} 模型")
-
         elif self.model_type == 'resnet34':
             model = resnet34(num_classes=self.num_classes)
             print(f"使用 {self.model_type} 模型")
-
         elif self.model_type == 'resnet50':
             model = resnet50(num_classes=self.num_classes)  # 修复：使用正确的 resnet50 函数
             print(f"使用 {self.model_type} 模型")
-            
         elif self.model_type == 'resnet101':
             model = resnet101(num_classes=self.num_classes)
             print(f"使用 {self.model_type} 模型")
-            
         elif self.model_type == 'resnet152':
             model = resnet152(num_classes=self.num_classes)
             print(f"使用 {self.model_type} 模型")
         
+        # 以下的模型是EfficientNetV2系列
         elif self.model_type == 'effnetv2_s':
             model = effnetv2_s(num_classes=self.num_classes)
             print(f"使用 {self.model_type} 模型")
@@ -157,7 +158,32 @@ class MInterface:
         elif self.model_type == 'effnetv2_xl':
             model = effnetv2_xl(num_classes=self.num_classes)
             print(f"使用 {self.model_type} 模型")
+        
+        elif self.model_type == 'effnetv2_cbam_s':
+            model = effnetv2_cbam_s(num_classes=self.num_classes)
+            print(f"使用 {self.model_type} 模型")
+        elif self.model_type == 'effnetv2_cbam_m':
+            model = effnetv2_cbam_m(num_classes=self.num_classes)
+            print(f"使用 {self.model_type} 模型")
+        elif self.model_type == 'effnetv2_cbam_l':
+            model = effnetv2_cbam_l(num_classes=self.num_classes)
+            print(f"使用 {self.model_type} 模型")
+        elif self.model_type == 'effnetv2_cbam_xl':
+            model = effnetv2_cbam_xl(num_classes=self.num_classes)
+            print(f"使用 {self.model_type} 模型")
 
+        elif self.model_type == 'effnetv2_dwt_cbam_s':
+            model = effnetv2_dwt_cbam_s(num_classes=self.num_classes)
+            print(f"使用 {self.model_type} 模型")
+        elif self.model_type == 'effnetv2_dwt_cbam_m':
+            model = effnetv2_dwt_cbam_m(num_classes=self.num_classes)
+            print(f"使用 {self.model_type} 模型")
+        elif self.model_type == 'effnetv2_dwt_cbam_l':
+            model = effnetv2_dwt_cbam_l(num_classes=self.num_classes)
+            print(f"使用 {self.model_type} 模型")
+        elif self.model_type == 'effnetv2_dwt_cbam_xl':
+            model = effnetv2_dwt_cbam_xl(num_classes=self.num_classes)
+            print(f"使用 {self.model_type} 模型")
 
         else :
             raise ValueError(f"不支持的模型类型: {self.model_type}")
