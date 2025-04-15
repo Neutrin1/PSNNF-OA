@@ -1,4 +1,4 @@
-# A-Standard-Neural-Network-frame-
+# Pan's standard neural network framework(PSNNF)
 # 标准神经网络框架
 
 这是一个封装好的用于图像识别的标准代码架构与框架。该框架设计用于处理标准化的数据集结构。
