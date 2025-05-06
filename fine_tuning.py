@@ -103,8 +103,7 @@ def set_seed(seed):
     torch.backends.cudnn.benchmark = False
 
 
-# 添加一个加载预训练模型的函数
-def load_pretrained_model(model_interface, model_type, pretrained_path, num_classes):
+def load_pretrained_model(model_interface, model_type, pretrained_path, num_classes, args):
     """
     加载预训练模型并修改分类层以适应新任务
     
@@ -113,12 +112,31 @@ def load_pretrained_model(model_interface, model_type, pretrained_path, num_clas
         model_type (str): 模型类型
         pretrained_path (str): 预训练模型权重路径
         num_classes (int): 目标任务的类别数
+        args: 命令行参数
         
     返回:
         nn.Module: 准备好进行迁移学习的模型
     """
-    # 初始化模型，带有预训练权重
-    model = model_interface.create_model(model_type=model_type, pretrained=False)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    # 如果需要，可以添加检查 wavelet_type 参数
+    if hasattr(args, 'wavelet_type'):
+        wavelet_type = args.wavelet_type
+    else:
+        # 设置默认值，如果参数中没有wavelet_type
+        wavelet_type = 'haar'
+
+    # 创建新的模型接口
+    model_interface = MInterface(
+        num_classes=num_classes,
+        dropout_rate=args.dropout_rate,
+        wavelet_type=wavelet_type,  # 使用检查后的wavelet_type
+        device=device,
+        model_type=model_type
+    )
+    
+    # 获取模型
+    model = model_interface.model
     
     # 加载预训练权重
     if os.path.exists(pretrained_path):
@@ -147,9 +165,81 @@ def load_pretrained_model(model_interface, model_type, pretrained_path, num_clas
         print(f"未找到预训练模型：{pretrained_path}")
         
     # 修改分类层以适应新任务
-    model_interface.modify_classifier(model, num_classes)
+    model = modify_classifier(model, model_type, num_classes)
     
     return model
+
+
+
+def modify_classifier(model, model_type, num_classes):
+    """
+    修改模型的分类器层以适应新的类别数
+    
+    参数:
+        model (nn.Module): 要修改的模型
+        model_type (str): 模型类型
+        num_classes (int): 新的类别数
+    """
+    # 根据不同模型类型修改分类头
+    if 'efficientnet' in model_type.lower():
+        # EfficientNet的分类头通常是最后一个全连接层
+        if hasattr(model, 'classifier'):
+            in_features = model.classifier.in_features
+            model.classifier = nn.Linear(in_features, num_classes)
+        elif hasattr(model, '_fc'):  # timm模型
+            in_features = model._fc.in_features
+            model._fc = nn.Linear(in_features, num_classes)
+        else:
+            print("警告: 无法识别的EfficientNet模型结构，无法修改分类器")
+    
+    elif 'resnet' in model_type.lower():
+        # ResNet的分类头是fc层
+        if hasattr(model, 'fc'):
+            in_features = model.fc.in_features
+            model.fc = nn.Linear(in_features, num_classes)
+        else:
+            print("警告: 无法识别的ResNet模型结构，无法修改分类器")
+    
+    elif 'vgg' in model_type.lower():
+        # VGG的分类头是classifier的最后一层
+        if hasattr(model, 'classifier') and isinstance(model.classifier, nn.Sequential):
+            in_features = model.classifier[-1].in_features
+            model.classifier[-1] = nn.Linear(in_features, num_classes)
+        else:
+            print("警告: 无法识别的VGG模型结构，无法修改分类器")
+    
+    elif 'mobilenet' in model_type.lower():
+        if hasattr(model, 'classifier'):
+            if isinstance(model.classifier, nn.Sequential):
+                in_features = model.classifier[-1].in_features
+                model.classifier[-1] = nn.Linear(in_features, num_classes)
+            else:
+                in_features = model.classifier.in_features
+                model.classifier = nn.Linear(in_features, num_classes)
+        else:
+            print("警告: 无法识别的MobileNet模型结构，无法修改分类器")
+    
+    else:
+        # 默认尝试一些常见的分类头名称
+        if hasattr(model, 'classifier'):
+            if isinstance(model.classifier, nn.Sequential):
+                in_features = model.classifier[-1].in_features
+                model.classifier[-1] = nn.Linear(in_features, num_classes)
+            elif isinstance(model.classifier, nn.Linear):
+                in_features = model.classifier.in_features
+                model.classifier = nn.Linear(in_features, num_classes)
+        elif hasattr(model, 'fc'):
+            in_features = model.fc.in_features
+            model.fc = nn.Linear(in_features, num_classes)
+        elif hasattr(model, 'head'):
+            if isinstance(model.head, nn.Linear):
+                in_features = model.head.in_features
+                model.head = nn.Linear(in_features, num_classes)
+        else:
+            print(f"警告: 未能识别模型 {model_type} 的分类器结构，无法修改分类器")
+    
+    return model
+
 
 # 添加冻结层函数
 def freeze_layers(model, freeze_until=None, freeze_names=None):
@@ -798,7 +888,7 @@ def main():
         # 初始化数据接口
         print("\n初始化数据加载器...")
         data_interface = DInterface(
-            data_dir=args.data_path,
+            root_path=args.data_path,
             batch_size=args.batch_size,
             num_workers=args.num_workers
         )
@@ -818,7 +908,8 @@ def main():
             model_interface=model_interface,
             model_type=args.model_type,
             pretrained_path=args.pretrained_path,
-            num_classes=args.num_classes
+            num_classes=args.num_classes,
+            args=args
         )
         
         # 冻结模型早期层
